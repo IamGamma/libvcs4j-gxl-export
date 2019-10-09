@@ -1,8 +1,15 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
-group 'de.gamma'
+ext {
+    javaMainClass = "de.gamma.libvcs4j.gxl.export.Main"
+}
+
+mainClassName = javaMainClass
+
+group 'de.gamma.libvcs4j.gxl.export'
 version '1.0-SNAPSHOT'
 
 sourceCompatibility = 1.11
