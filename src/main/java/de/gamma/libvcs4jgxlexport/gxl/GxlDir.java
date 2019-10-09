@@ -1,7 +1,7 @@
-package de.gamma.libvcs4jexport.gxl;
+package de.gamma.libvcs4jgxlexport.gxl;
 
-import de.gamma.libvcs4jexport.gxl.attr.GxlString;
-import de.gamma.libvcs4jexport.gxl.util.GxlType;
+import de.gamma.libvcs4jgxlexport.gxl.attr.GxlString;
+import de.gamma.libvcs4jgxlexport.gxl.util.GxlType;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -9,12 +9,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 //    <node id="N2">
 //      <type xlink:href="Directory"/>
-//      <de.gamma.libvcs4jexport.attr name="Source.Name">
+//      <de.gamma.libvcs4jgxlexport.attr name="Source.Name">
 //        <string>9p</string>
-//      </de.gamma.libvcs4jexport.attr>
-//      <de.gamma.libvcs4jexport.attr name="Linkage.Name">
+//      </de.gamma.libvcs4jgxlexport.attr>
+//      <de.gamma.libvcs4jgxlexport.attr name="Linkage.Name">
 //        <string>9p/fs</string>
-//      </de.gamma.libvcs4jexport.attr>
+//      </de.gamma.libvcs4jgxlexport.attr>
 //    </node>
 @XmlRootElement(name = "node")
 public class GxlDir {

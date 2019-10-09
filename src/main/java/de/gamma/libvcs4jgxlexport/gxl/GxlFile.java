@@ -1,9 +1,9 @@
-package de.gamma.libvcs4jexport.gxl;
+package de.gamma.libvcs4jgxlexport.gxl;
 
-import de.gamma.libvcs4jexport.gxl.attr.GxlFloat;
-import de.gamma.libvcs4jexport.gxl.attr.GxlInt;
-import de.gamma.libvcs4jexport.gxl.attr.GxlString;
-import de.gamma.libvcs4jexport.gxl.util.GxlType;
+import de.gamma.libvcs4jgxlexport.gxl.attr.GxlFloat;
+import de.gamma.libvcs4jgxlexport.gxl.attr.GxlInt;
+import de.gamma.libvcs4jgxlexport.gxl.attr.GxlString;
+import de.gamma.libvcs4jgxlexport.gxl.util.GxlType;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;

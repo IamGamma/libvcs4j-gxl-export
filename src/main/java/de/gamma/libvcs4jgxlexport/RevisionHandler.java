@@ -1,9 +1,9 @@
-package de.gamma.libvcs4jexport;
+package de.gamma.libvcs4jgxlexport;
 
-import de.gamma.libvcs4jexport.gxl.GxlDir;
-import de.gamma.libvcs4jexport.gxl.GxlEdge;
-import de.gamma.libvcs4jexport.gxl.GxlFile;
-import de.gamma.libvcs4jexport.gxl.GxlRoot;
+import de.gamma.libvcs4jgxlexport.gxl.GxlDir;
+import de.gamma.libvcs4jgxlexport.gxl.GxlEdge;
+import de.gamma.libvcs4jgxlexport.gxl.GxlFile;
+import de.gamma.libvcs4jgxlexport.gxl.GxlRoot;
 import de.unibremen.informatik.st.libvcs4j.RevisionRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

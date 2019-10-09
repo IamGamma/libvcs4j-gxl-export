@@ -1,4 +1,4 @@
-package de.gamma.libvcs4jexport.gxl.attr;
+package de.gamma.libvcs4jgxlexport.gxl.attr;
 
 import javax.xml.bind.annotation.XmlElement;
 

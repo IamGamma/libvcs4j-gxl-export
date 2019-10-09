@@ -1,4 +1,4 @@
-package de.gamma.libvcs4jexport;
+package de.gamma.libvcs4jgxlexport;
 
 import de.unibremen.informatik.st.libvcs4j.RevisionRange;
 import de.unibremen.informatik.st.libvcs4j.VCSEngine;
