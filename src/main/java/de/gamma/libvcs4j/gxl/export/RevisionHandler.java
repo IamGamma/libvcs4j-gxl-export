@@ -1,9 +1,9 @@
-package de.gamma.libvcs4jgxlexport;
+package de.gamma.libvcs4j.gxl.export;
 
-import de.gamma.libvcs4jgxlexport.gxl.GxlDir;
-import de.gamma.libvcs4jgxlexport.gxl.GxlEdge;
-import de.gamma.libvcs4jgxlexport.gxl.GxlFile;
-import de.gamma.libvcs4jgxlexport.gxl.GxlRoot;
+import de.gamma.libvcs4j.gxl.export.gxl.GxlDir;
+import de.gamma.libvcs4j.gxl.export.gxl.GxlRoot;
+import de.gamma.libvcs4j.gxl.export.gxl.GxlEdge;
+import de.gamma.libvcs4j.gxl.export.gxl.GxlFile;
 import de.unibremen.informatik.st.libvcs4j.RevisionRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +49,6 @@ public class RevisionHandler {
         var edgeListUnsafe = new ArrayList<GxlEdge>();
         var edgeList = Collections.synchronizedList(edgeListUnsafe);
         var revisionFiles = range.getRevision().getFiles();
-        logger.info("Iterating Revision: {}", range.getRevision().getId());
-        //var root = new GxlRoot();
         gxlRoot.graph.id = projectName;
 
 
@@ -116,17 +114,6 @@ public class RevisionHandler {
         var dirNodeRoot = new DirNode("", ""); // dirRoot.sourceName.data
         dirMap.values().forEach(dir -> {
             var actualDirNode = dirNodeRoot;
-            //TODO path für linkage name nicht coorect
-                /*
-                var path = Paths.get(dir.linkageName.data);
-                while(path != null) {
-                    var name = path.getFileName().toString();
-                    var newDirNode = actualDirNode.getChildren().getOrDefault(name, new DirNode(name, path.toString()));
-                    actualDirNode.getChildren().put(name, newDirNode);
-                    actualDirNode = newDirNode;
-                    path = path.getParent();
-                }
-                */
             for (Path subPath : Paths.get(dir.linkageName.data)) {
                 var name = subPath.getFileName().toString();
 
@@ -139,26 +126,10 @@ public class RevisionHandler {
         dirNodeRoot.combineEmptyNodes();
         dirNodeRoot.putChildsIntoGraph(dirRoot, nodeCounter, edgeCounter, dirMap, edgeList);
 
-
-
-            /*
-            Fügt die dir zur dirRoot hinzu
-            dirMap.values().stream().forEach(dir -> {
-                edgeList.add(new GxlEdge(
-                        "E" + edgeCounter.getAndIncrement(),
-                        dir.id,
-                        dirRoot.id,
-                        GxlEdge.ENCLOSING
-                ));
-            });
-            */
-
         gxlRoot.graph.files.addAll(files);
         gxlRoot.graph.edges.addAll(edgeList);
         gxlRoot.graph.dirs.addAll(dirMap.values());
         gxlRoot.graph.dirs.add(dirRoot);
-
-        //saveJaxb(root); TODO old way
     }
 
     private void saveToFile(File file) {
@@ -170,7 +141,7 @@ public class RevisionHandler {
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
             marshaller.setProperty("com.sun.xml.bind.xmlHeaders", "\n<!DOCTYPE gxl SYSTEM \"http://www.gupro.de/GXL/gxl-1.0.dtd\">");
             marshaller.marshal(gxlRoot, file);
-            marshaller.marshal(gxlRoot, System.out);
+            //marshaller.marshal(gxlRoot, System.out);
         } catch (JAXBException e) {
             e.printStackTrace();
         }

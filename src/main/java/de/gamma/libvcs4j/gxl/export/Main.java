@@ -1,4 +1,4 @@
-package de.gamma.libvcs4jgxlexport;
+package de.gamma.libvcs4j.gxl.export;
 
 import de.unibremen.informatik.st.libvcs4j.RevisionRange;
 import de.unibremen.informatik.st.libvcs4j.VCSEngine;
@@ -17,7 +17,10 @@ public class Main {
 
     private final Logger logger = LoggerFactory.getLogger(Main.class);
 
-    private void onStart() {
+    final int MAX_REVISIONS = 40;
+    final String GIT_REPO = "https://github.com/amaembo/streamex.git";
+
+    private void start() {
         logger.debug("Delete old generated data");
         var pathData = Paths.get("graph-revisions/");
         if (Files.exists(pathData)) {
@@ -33,11 +36,10 @@ public class Main {
         }
 
         var projectName = "streamex";
-        var maxRevisions = 40;
 
-        logger.debug("Loading Vcs");
+        logger.debug("Loading Vcs: " + GIT_REPO);
         VCSEngine vcs = VCSEngineBuilder
-                .ofGit("https://github.com/amaembo/streamex.git")
+                .ofGit(GIT_REPO)
                 .build();
 
         try {
@@ -45,7 +47,7 @@ public class Main {
             Files.createDirectories(revisionsPath);
             var revisionCounter = 0;
             for (RevisionRange range : vcs) {
-                if (revisionCounter++ >= maxRevisions) {
+                if (revisionCounter++ >= MAX_REVISIONS) {
                     break;
                 }
                 var path = Paths.get(String.format("graph-revisions/%s-%s.gxl", projectName, range.getOrdinal()));
@@ -58,6 +60,6 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        new Main().onStart();
+        new Main().start();
     }
 }

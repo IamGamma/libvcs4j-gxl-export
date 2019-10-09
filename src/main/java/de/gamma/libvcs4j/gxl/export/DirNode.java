@@ -1,7 +1,7 @@
-package de.gamma.libvcs4jgxlexport;
+package de.gamma.libvcs4j.gxl.export;
 
-import de.gamma.libvcs4jgxlexport.gxl.GxlDir;
-import de.gamma.libvcs4jgxlexport.gxl.GxlEdge;
+import de.gamma.libvcs4j.gxl.export.gxl.GxlDir;
+import de.gamma.libvcs4j.gxl.export.gxl.GxlEdge;
 
 import java.nio.file.Paths;
 import java.util.HashMap;
