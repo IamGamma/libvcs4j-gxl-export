@@ -1,4 +1,4 @@
-package de.gamma.libvcs4j.gxl.export;
+package de.gamma.libvcs4j.gxl.export.gxl.util;
 
 import de.gamma.libvcs4j.gxl.export.gxl.GxlDir;
 import de.gamma.libvcs4j.gxl.export.gxl.GxlEdge;

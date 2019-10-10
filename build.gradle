@@ -4,7 +4,7 @@ plugins {
 }
 
 ext {
-    javaMainClass = "de.gamma.libvcs4j.gxl.export.Main"
+    javaMainClass = "de.gamma.libvcs4j.gxl.export.DesktopApp"
 }
 
 mainClassName = javaMainClass
@@ -27,4 +27,5 @@ dependencies {
     implementation "javax.activation:activation:1.1.1"
     implementation "org.slf4j:slf4j-api:1.7.25"
     implementation "org.slf4j:slf4j-simple:1.7.25"
+    compile 'info.picocli:picocli:4.0.4'
 }
