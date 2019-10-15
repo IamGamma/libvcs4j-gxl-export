@@ -28,12 +28,13 @@ public class GxlEdge {
 
     }
 
-    public GxlEdge(String id, String from, String to, String type) {
-        this.id = id;
+    public GxlEdge(int id, String from, String to, String type) {
+        this.id = "E" + id;
         this.from = from;
         this.to = to;
         this.type = new GxlType(type);
     }
 
-    public static String ENCLOSING = "Enclosing";
+    public static String TYPE_ENCLOSING = "Enclosing";
+    public static String TYPE_CLONE = "Clone";
 }

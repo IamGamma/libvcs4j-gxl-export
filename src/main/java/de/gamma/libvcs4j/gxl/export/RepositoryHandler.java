@@ -1,9 +1,13 @@
 package de.gamma.libvcs4j.gxl.export;
 
+import de.gamma.libvcs4j.gxl.export.analysis.FileAnalyzer;
 import de.unibremen.informatik.st.libvcs4j.RevisionRange;
 import de.unibremen.informatik.st.libvcs4j.VCSEngine;
 import de.unibremen.informatik.st.libvcs4j.VCSEngineBuilder;
 import de.unibremen.informatik.st.libvcs4j.engine.AbstractVSCEngine;
+import de.unibremen.informatik.st.libvcs4j.spoon.BuildException;
+import de.unibremen.informatik.st.libvcs4j.spoon.SpoonModel;
+import de.unibremen.informatik.st.libvcs4j.spoon.SpoonModelBuilder;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +28,7 @@ public class RepositoryHandler {
     private static final String DEFAULT_GIT_REPO = "https://github.com/amaembo/streamex.git";
     private static final String GRAPH_DATA_PATH = "graph-data/";
 
+    private final FileAnalyzer fileAnalyzer = new FileAnalyzer();
     private final Logger logger = LoggerFactory.getLogger(RepositoryHandler.class);
     private final String repository;
     private final int maxRevisions;
@@ -77,10 +82,11 @@ public class RepositoryHandler {
 
         try {
             var revisionsPath = Paths.get(GRAPH_DATA_PATH, projectName);
+            var spoonModelBuilder = new SpoonModelBuilder();
             Files.createDirectories(revisionsPath);
             var revisionCounter = 0;
             for (RevisionRange range : vcs) {
-                if (++revisionCounter >= maxRevisions) {
+                if (++revisionCounter > maxRevisions) {
                     break;
                 }
                 if (progressCallback != null) {
@@ -90,9 +96,15 @@ public class RepositoryHandler {
                         progressCallback.accept((int) ((revisionCounter / (float) maxRevisions) * 100));
                     }
                 }
+                SpoonModel spoonModel = null;
+                try {
+                    spoonModel = spoonModelBuilder.update(range);
+                } catch (BuildException e) {
+                    logger.error("Error while tring to update SpoonModel for revision " + range.getOrdinal(), e);
+                }
                 var path = Paths.get(revisionsPath.toString(), String.format("%s-%s.gxl", projectName, range.getOrdinal()));
                 var saveFile = new File(path.toAbsolutePath().toString());
-                RevisionHandler.writeToFile(saveFile, range, projectName);
+                RevisionHandler.writeToFile(saveFile, range, projectName, fileAnalyzer, spoonModel);
             }
         } catch (IOException e) {
             logger.error("Error when iterating revisions:", e);

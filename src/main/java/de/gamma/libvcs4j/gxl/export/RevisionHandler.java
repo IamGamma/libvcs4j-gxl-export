@@ -1,11 +1,15 @@
 package de.gamma.libvcs4j.gxl.export;
 
+import de.gamma.libvcs4j.gxl.export.analysis.IFileAnalyzer;
 import de.gamma.libvcs4j.gxl.export.gxl.GxlDir;
-import de.gamma.libvcs4j.gxl.export.gxl.GxlRoot;
 import de.gamma.libvcs4j.gxl.export.gxl.GxlEdge;
 import de.gamma.libvcs4j.gxl.export.gxl.GxlFile;
+import de.gamma.libvcs4j.gxl.export.gxl.GxlRoot;
 import de.gamma.libvcs4j.gxl.export.gxl.util.DirNode;
+import de.gamma.libvcs4j.gxl.export.gxl.util.IGxlId;
 import de.unibremen.informatik.st.libvcs4j.RevisionRange;
+import de.unibremen.informatik.st.libvcs4j.VCSFile;
+import de.unibremen.informatik.st.libvcs4j.spoon.SpoonModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,107 +17,93 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 public class RevisionHandler {
 
     private final Logger logger = LoggerFactory.getLogger(RevisionHandler.class);
     private final String projectName;
-    private final GxlRoot gxlRoot;
-    private final List<String> badFileTypes;
+    private final GxlRoot gxlRoot = new GxlRoot();
+    private final List<GxlEdge> edgeListUnsafe = new ArrayList<>();
+    private final List<VCSFile> revisionFiles;
+    private final IFileAnalyzer fileAnalyzer;
+    public final SpoonModel spoonModel;
+    private AtomicInteger edgeCounter = new AtomicInteger(0);
+    private AtomicInteger nodeCounter = new AtomicInteger(0);
 
-    static void writeToFile(File file, RevisionRange range, String projectName) {
-        var handler = new RevisionHandler(range, projectName);
+    public final ConcurrentMap<String, GxlDir> dirMap = new ConcurrentHashMap<>();
+    public final ConcurrentMap<String, GxlFile> fileMap = new ConcurrentHashMap<>();
+    public final List<GxlEdge> edgeList = Collections.synchronizedList(edgeListUnsafe);
+
+    /**
+     * TODO
+     *
+     * @param file
+     * @param range
+     * @param projectName
+     */
+    static void writeToFile(File file, RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
+        var handler = new RevisionHandler(range, projectName, fileAnalyzer, spoonModel);
         handler.run();
         handler.saveToFile(file);
     }
 
-    private RevisionRange range;
+    public final RevisionRange range;
 
-    private RevisionHandler(RevisionRange range, String projectName) {
+    /**
+     * TODo
+     *
+     * @param range
+     * @param projectName
+     */
+    private RevisionHandler(RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
         // TODO argument check
         this.range = range;
         this.projectName = projectName;
-        gxlRoot = new GxlRoot();
         gxlRoot.graph.id = projectName;
-        badFileTypes = Arrays.asList(".jar");
+        revisionFiles = range.getRevision().getFiles();
+        this.fileAnalyzer = fileAnalyzer;
+        this.spoonModel = spoonModel;
     }
 
+    /**
+     * TODo
+     */
     private void run() {
-        logger.info("Handel Revision: " + range.getOrdinal());
-        var dirMap = new ConcurrentHashMap<String, GxlDir>();
-        var edgeListUnsafe = new ArrayList<GxlEdge>();
-        var edgeList = Collections.synchronizedList(edgeListUnsafe);
-        var revisionFiles = range.getRevision().getFiles();
-        gxlRoot.graph.id = projectName;
-
-
-        var edgeCounter = new AtomicInteger(0);
-        var nodeCounter = new AtomicInteger(0);
+        logger.info("Handle revision: " + range.getOrdinal());
 
         var dirRoot = new GxlDir(
-                "N" + nodeCounter.getAndIncrement(),
+                nodeCounter.getAndIncrement(),
                 projectName,
                 projectName
         );
-        var files = revisionFiles.stream().filter(vcsFile -> badFileTypes.stream().noneMatch(vcsFile.getRelativePath()::endsWith)).map(vcsFile -> {
+
+        revisionFiles.stream().filter(vcsFile -> fileAnalyzer.getFileTypes().stream().anyMatch(vcsFile.getRelativePath()::endsWith)).forEach(vcsFile -> {
             var path = Paths.get(vcsFile.getRelativePath());
-            logger.info("Handel Revision 2: " + path.toString());
-
-            var file = new GxlFile(
-                    "N" + nodeCounter.getAndIncrement(),
-                    0,
-                    0,
-                    0,
-                    path.getFileName().toString(),
-                    vcsFile.getRelativePath(),
-                    path.getFileName().toString(),
-                    vcsFile.getRelativePath());
-            try {
-                file.loc.data = (int) Files.lines(vcsFile.toFile().toPath()).count();
-                file.numberOfTokens.data = Files.lines(vcsFile.toFile().toPath())
-                        .map(line -> new StringTokenizer(line).countTokens())
-                        .reduce(0, Integer::sum);
-            } catch (IOException e) {
-                logger.error("Error in file strem von revision " + range.getOrdinal());
-                e.printStackTrace();
-            }
-            var dirPath = path.getParent();
-            if (dirPath != null) {
-                var dir = dirMap.putIfAbsent(dirPath.toString(), new GxlDir(
-                        "N" + nodeCounter.getAndIncrement(),
-                        dirPath.getFileName().toString(),
-                        dirPath.toString()
-                ));
+            var file = addNewFile(path);
+            GxlDir dir;
+            var parentPath = path.getParent();
+            if (parentPath != null) {
+                dir = dirMap.get(parentPath.toString());
                 if (dir == null) {
-                    dir = dirMap.get(dirPath.toString());
+                    dir = addNewDir(parentPath);
                 }
-
-                edgeList.add(new GxlEdge(
-                        "E" + edgeCounter.getAndIncrement(),
-                        file.id,
-                        dir.id,
-                        GxlEdge.ENCLOSING
-                ));
             } else {
-                edgeList.add(new GxlEdge(
-                        "E" + edgeCounter.getAndIncrement(),
-                        file.id,
-                        dirRoot.id,
-                        GxlEdge.ENCLOSING
-                ));
+                // Wenn es kein parentPath gibt, liegt die Datei im Hauptverzeichnis eines Projekts
+                dir = dirRoot;
             }
-            return file;
-        }).collect(Collectors.toList());
-        // Splitte und kombine die einzelnen path in ihre Ordnerstruktur
-        var dirNodeRoot = new DirNode("", ""); // dirRoot.sourceName.data
+            addNewEdge(file, dir, GxlEdge.TYPE_ENCLOSING);
+        });
+
+        // formats the generated DirNodes to represent the real filestructure
+        var dirNodeRoot = new DirNode("", "");
         dirMap.values().forEach(dir -> {
             var actualDirNode = dirNodeRoot;
             for (Path subPath : Paths.get(dir.linkageName.data)) {
@@ -127,24 +117,74 @@ public class RevisionHandler {
         });
         dirNodeRoot.combineEmptyNodes();
         dirNodeRoot.putChildsIntoGraph(dirRoot, nodeCounter, edgeCounter, dirMap, edgeList);
-        gxlRoot.graph.files.addAll(files);
+
+        analyzeFiles();
+
+        // Adds all generated data to gxlRoot, for later export to file
+        gxlRoot.graph.files.addAll(fileMap.values());
         gxlRoot.graph.edges.addAll(edgeList);
         gxlRoot.graph.dirs.addAll(dirMap.values());
         gxlRoot.graph.dirs.add(dirRoot);
     }
 
+    /**
+     * TODO
+     *
+     * @param file
+     */
     private void saveToFile(File file) {
         try {
-            //var path = Paths.get("graph-revisions/" + root.graph.id + ".gxl");
-            //Files.createDirectories(file);
             JAXBContext jaxbContext = JAXBContext.newInstance(GxlRoot.class);
             Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
             marshaller.setProperty("com.sun.xml.bind.xmlHeaders", "\n<!DOCTYPE gxl SYSTEM \"http://www.gupro.de/GXL/gxl-1.0.dtd\">");
             marshaller.marshal(gxlRoot, file);
-            //marshaller.marshal(gxlRoot, System.out);
         } catch (JAXBException e) {
             logger.error("Error while trying to save revision to gxl file:", e);
         }
+    }
+
+    /**
+     * TODO
+     */
+    private void analyzeFiles() {
+        revisionFiles.forEach(vcsFile -> {
+            var gxlFile = fileMap.get(vcsFile.getRelativePath());
+            if (gxlFile == null) {
+                return;
+            }
+            fileAnalyzer.analyze(this, vcsFile);
+        });
+    }
+
+    public GxlEdge addNewEdge(IGxlId from, IGxlId to, String type) {
+        var gxlEdge = new GxlEdge(edgeCounter.getAndIncrement(), from.getId(), to.getId(), type);
+        edgeList.add(gxlEdge);
+        return gxlEdge;
+    }
+
+    private GxlFile addNewFile(Path path) {
+        var gxlFile = new GxlFile(
+                nodeCounter.getAndIncrement(),
+                0,
+                0,
+                0,
+                path.getFileName().toString(),
+                path.toString(),
+                path.getFileName().toString(),
+                path.toString());
+
+        fileMap.put(gxlFile.linkageName.data, gxlFile);
+        return gxlFile;
+    }
+
+    private GxlDir addNewDir(Path path) {
+        var gxlDir = new GxlDir(
+                nodeCounter.getAndIncrement(),
+                path.getFileName().toString(),
+                path.toString()
+        );
+        dirMap.put(path.toString(), gxlDir);
+        return gxlDir;
     }
 }

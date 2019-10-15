@@ -32,12 +32,12 @@ public class DesktopApp {
     private JTextField textFieldMaxRevision = new JTextField("0");
     private JProgressBar progressBar = new JProgressBar();
     private JLabel labelInfo = new JLabel("Info:", SwingConstants.LEFT);
-    private JButton button = new JButton("Daten exportieren");
+    private JButton button = new JButton("Export data");
     private boolean taskRunning = false;
     private Worker worker;
 
     private void showGui() {
-        JFrame frame = new JFrame("Gxl Export");//creating instance of JFrame
+        JFrame frame = new JFrame("Gxl export");//creating instance of JFrame
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new FlowLayout(FlowLayout.LEFT));
 
@@ -46,13 +46,13 @@ public class DesktopApp {
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
         panel.setPreferredSize(new Dimension(600, 180));
 
-        var labelRepo = new JLabel("Repository Adresse (https clone Adresse):");
+        var labelRepo = new JLabel("Repository adresse (https clone adresse):");
         labelRepo.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         var textFieldRepo = new JTextField();
         textFieldRepo.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        var labelMaxRevision = new JLabel("Anzahl an maximaler Revisionen (0 für alle):", SwingConstants.LEFT);
+        var labelMaxRevision = new JLabel("Number of revisions to load (0 for all):", SwingConstants.LEFT);
         labelMaxRevision.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         var textFieldMaxRevision = new JTextField("0");
@@ -119,11 +119,11 @@ public class DesktopApp {
                 });
                 worker.execute();
                 logger.info(String.format("Exportiere %s Datensätze von %s.", maxRevisions, fieldRepo));
-                setInfo("Lade Daten, das kann ein Moment dauern");
+                setInfo("Loading data, this may take a moment.");
                 taskRunning = true;
             }catch (NumberFormatException e) {
                 logger.info("Anzahl der maximalen Revisionen ist keine gültige Zahl.");
-                setInfo("Anzahl der maximalen Revisionen ist keine gültige Zahl.");
+                setInfo("Field for maximum revisions is not a valid number.");
             }
         }
         onTaskChangeState();
@@ -137,9 +137,9 @@ public class DesktopApp {
             if (textFieldMaxRevision.getText().equals("")) {
                 textFieldMaxRevision.setText("0");
             }
-            button.setText("Daten exportieren");
+            button.setText("Export data");
         } else {
-            button.setText("Abbrechen");
+            button.setText("Abort");
         }
     }
 
@@ -167,7 +167,7 @@ public class DesktopApp {
             taskRunning = false;
             onTaskChangeState();
             worker = null;
-            setInfo("Fertig exportiert");
+            setInfo("Finished export");
         }
     }
 

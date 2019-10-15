@@ -4,6 +4,7 @@ import de.gamma.libvcs4j.gxl.export.gxl.attr.GxlFloat;
 import de.gamma.libvcs4j.gxl.export.gxl.attr.GxlInt;
 import de.gamma.libvcs4j.gxl.export.gxl.attr.GxlString;
 import de.gamma.libvcs4j.gxl.export.gxl.util.GxlType;
+import de.gamma.libvcs4j.gxl.export.gxl.util.IGxlId;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -34,7 +35,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 //      </attr>
 //    </node>
 @XmlRootElement(name = "node")
-public class GxlFile {
+public class GxlFile implements IGxlId {
 
     @XmlAttribute(name = "id")
     public String id;
@@ -66,7 +67,7 @@ public class GxlFile {
     public GxlFile() {
     }
 
-    public GxlFile(String id,
+    public GxlFile(int id,
                    int loc,
                    float cloneRate,
                    int numberOfTokens,
@@ -74,7 +75,7 @@ public class GxlFile {
                    String linkageName,
                    String sourceFile,
                    String sourcePath) {
-        this.id = id;
+        this.id = "N" + id;
         this.loc = new GxlInt("Metric.LOC", loc);
         this.cloneRate = new GxlFloat("Metric.Clone_Rate", cloneRate);
         this.numberOfTokens = new GxlInt("Metric.Number_of_Tokens", numberOfTokens);
@@ -82,5 +83,10 @@ public class GxlFile {
         this.linkageName = new GxlString("Linkage.Name", linkageName);
         this.sourceFile = new GxlString("Source.File", sourceFile);
         this.sourcePath = new GxlString("Source.Path", sourcePath);
+    }
+
+    @Override
+    public String getId() {
+        return id;
     }
 }

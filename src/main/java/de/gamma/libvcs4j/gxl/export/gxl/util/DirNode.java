@@ -6,7 +6,7 @@ import de.gamma.libvcs4j.gxl.export.gxl.GxlEdge;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class DirNode {
@@ -69,17 +69,33 @@ public class DirNode {
         }
     }
 
-    public void putChildsIntoGraph(GxlDir root, AtomicInteger nodeCounter, AtomicInteger edgeCounter, ConcurrentHashMap<String, GxlDir> dirMap, List<GxlEdge> edgeList) {
+    /**
+     * TODO use RevisionRange or else
+     * @param root
+     * @param nodeCounter
+     * @param edgeCounter
+     * @param dirMap
+     * @param edgeList
+     */
+    public void putChildsIntoGraph(GxlDir root, AtomicInteger nodeCounter, AtomicInteger edgeCounter, ConcurrentMap<String, GxlDir> dirMap, List<GxlEdge> edgeList) {
         for (DirNode child : children.values()) {
             child.putIntoGraph(root, nodeCounter, edgeCounter, dirMap, edgeList);
         }
     }
 
-    private void putIntoGraph(GxlDir parent, AtomicInteger nodeCounter, AtomicInteger edgeCounter, ConcurrentHashMap<String, GxlDir> dirMap, List<GxlEdge> edgeList) {
+    /**
+     * TODO use RevisionRange or else
+     * @param parent
+     * @param nodeCounter
+     * @param edgeCounter
+     * @param dirMap
+     * @param edgeList
+     */
+    private void putIntoGraph(GxlDir parent, AtomicInteger nodeCounter, AtomicInteger edgeCounter, ConcurrentMap<String, GxlDir> dirMap, List<GxlEdge> edgeList) {
         var gxlDir = dirMap.get(path);
         if (gxlDir == null) {
             gxlDir = new GxlDir(
-                    "N" + nodeCounter.getAndIncrement(),
+                    nodeCounter.getAndIncrement(),
                     name,
                     path
             );
@@ -90,10 +106,10 @@ public class DirNode {
         }
         if (parent != null) {
             edgeList.add(new GxlEdge(
-                    "E" + edgeCounter.getAndIncrement(),
+                    edgeCounter.getAndIncrement(),
                     gxlDir.id,
                     parent.id,
-                    GxlEdge.ENCLOSING
+                    GxlEdge.TYPE_ENCLOSING
             ));
         }
         for (DirNode child : children.values()) {
