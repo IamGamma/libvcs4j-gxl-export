@@ -14,13 +14,13 @@ public class GxlGraph {
     public Boolean edgeIds = true;
 
     @XmlElement(name = "node")
-    public List<GxlDir> dirs = new ArrayList<>();
+    public final List<GxlDir> dirs = new ArrayList<>();
 
     @XmlElement(name = "node")
-    public List<GxlFile> files = new ArrayList<>();
+    public final List<GxlFile> files = new ArrayList<>();
 
     @XmlElement(name = "edge")
-    public List<GxlEdge> edges = new ArrayList<>();
+    public final List<GxlEdge> edges = new ArrayList<>();
 
     public GxlGraph() {}
 

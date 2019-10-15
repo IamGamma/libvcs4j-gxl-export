@@ -15,7 +15,7 @@ public class GxlRoot {
     public String xlink = "http://www.w3.org/1999/xlink";
 
     @XmlElement(name = "graph")
-    public GxlGraph graph = new GxlGraph();
+    public final GxlGraph graph = new GxlGraph();
 
     public GxlRoot() {}
 }

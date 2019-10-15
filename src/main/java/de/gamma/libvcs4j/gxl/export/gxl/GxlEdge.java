@@ -35,6 +35,6 @@ public class GxlEdge {
         this.type = new GxlType(type);
     }
 
-    public static String TYPE_ENCLOSING = "Enclosing";
-    public static String TYPE_CLONE = "Clone";
+    public static final String TYPE_ENCLOSING = "Enclosing";
+    public static final String TYPE_CLONE = "Clone";
 }

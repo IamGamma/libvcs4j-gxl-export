@@ -5,10 +5,7 @@ import de.unibremen.informatik.st.libvcs4j.VCSFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 /**
  * Combines IFileAnalyzer for different filytypes in one single point.
@@ -20,8 +17,7 @@ public class FileAnalyzer implements IFileAnalyzer {
     private final List<String> analyzableFileTypes = new ArrayList<>();
 
     public FileAnalyzer() {
-        Arrays
-                .asList(new JavaIFileAnalyzer())
+        Collections.singletonList(new JavaIFileAnalyzer())
                 .forEach(analyzer -> {
                     analyzer.getFileTypes().forEach(fileType -> analyzerMap.put(fileType, analyzer));
                 });

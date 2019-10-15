@@ -35,8 +35,8 @@ public class RevisionHandler {
     private final List<VCSFile> revisionFiles;
     private final IFileAnalyzer fileAnalyzer;
     public final SpoonModel spoonModel;
-    private AtomicInteger edgeCounter = new AtomicInteger(0);
-    private AtomicInteger nodeCounter = new AtomicInteger(0);
+    private final AtomicInteger edgeCounter = new AtomicInteger(0);
+    private final AtomicInteger nodeCounter = new AtomicInteger(0);
 
     public final ConcurrentMap<String, GxlDir> dirMap = new ConcurrentHashMap<>();
     public final ConcurrentMap<String, GxlFile> fileMap = new ConcurrentHashMap<>();

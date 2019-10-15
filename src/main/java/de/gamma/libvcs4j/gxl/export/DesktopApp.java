@@ -29,10 +29,10 @@ public class DesktopApp {
     private final Logger logger = LoggerFactory.getLogger(DesktopApp.class);
 
     private JTextField textFieldRepo = new JTextField();
-    private JTextField textFieldMaxRevision = new JTextField("0");
-    private JProgressBar progressBar = new JProgressBar();
-    private JLabel labelInfo = new JLabel("Info:", SwingConstants.LEFT);
-    private JButton button = new JButton("Export data");
+    private final JTextField textFieldMaxRevision = new JTextField("0");
+    private final JProgressBar progressBar = new JProgressBar();
+    private final JLabel labelInfo = new JLabel("Info:", SwingConstants.LEFT);
+    private final JButton button = new JButton("Export data");
     private boolean taskRunning = false;
     private Worker worker;
 
@@ -145,8 +145,8 @@ public class DesktopApp {
 
     private class Worker extends SwingWorker<Integer, Integer> {
 
-        private String repository;
-        private int maxRevisions;
+        private final String repository;
+        private final int maxRevisions;
 
         Worker(String repository, int maxRevisions) {
             this.repository = repository;
@@ -154,7 +154,7 @@ public class DesktopApp {
         }
 
         @Override
-        protected Integer doInBackground() throws Exception {
+        protected Integer doInBackground() {
                 var handler = new RepositoryHandler(repository, maxRevisions);
                 handler.setProgressCallback(this::setProgress);
                 handler.start();
