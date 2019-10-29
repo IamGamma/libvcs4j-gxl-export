@@ -22,25 +22,77 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * TODO
+ */
 public class RevisionHandler {
 
     private final Logger logger = LoggerFactory.getLogger(RevisionHandler.class);
-    private final String projectName;
+
+    /**
+     * TODO
+     */
     private final GxlRoot gxlRoot = new GxlRoot();
+
+    /**
+     * TODO
+     */
     private final List<GxlEdge> edgeListUnsafe = new ArrayList<>();
-    private final List<VCSFile> revisionFiles;
-    private final IFileAnalyzer fileAnalyzer;
-    public final SpoonModel spoonModel;
+
+    /**
+     * TODO
+     */
     private final AtomicInteger edgeCounter = new AtomicInteger(0);
+
+    /**
+     * TODO
+     */
     private final AtomicInteger nodeCounter = new AtomicInteger(0);
 
-    public final ConcurrentMap<String, GxlDir> dirMap = new ConcurrentHashMap<>();
+    /**
+     * TODO
+     */
+    private final ConcurrentMap<String, GxlDir> dirMap = new ConcurrentHashMap<>();
+
+    /**
+     * TODO private
+     */
     public final ConcurrentMap<String, GxlFile> fileMap = new ConcurrentHashMap<>();
-    public final List<GxlEdge> edgeList = Collections.synchronizedList(edgeListUnsafe);
+
+    /**
+     * TODO
+     */
+    private final List<GxlEdge> edgeList = Collections.synchronizedList(edgeListUnsafe);
+
+    /**
+     * TODO private
+     */
+    public final RevisionRange range;
+
+    /**
+     * TODO
+     */
+    private final List<VCSFile> revisionFiles;
+
+    /**
+     * TODO
+     */
+    private final IFileAnalyzer fileAnalyzer;
+
+    /**
+     * TODO
+     */
+    private final String projectName;
+
+    /**
+     * TODO private
+     */
+    public final SpoonModel spoonModel;
 
     /**
      * TODO
@@ -50,12 +102,11 @@ public class RevisionHandler {
      * @param projectName
      */
     static void writeToFile(File file, RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
+        // TODO argument check
         var handler = new RevisionHandler(range, projectName, fileAnalyzer, spoonModel);
         handler.run();
         handler.saveToFile(file);
     }
-
-    public final RevisionRange range;
 
     /**
      * TODo
@@ -64,17 +115,16 @@ public class RevisionHandler {
      * @param projectName
      */
     private RevisionHandler(RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
-        // TODO argument check
         this.range = range;
         this.projectName = projectName;
-        gxlRoot.graph.id = projectName;
-        revisionFiles = range.getRevision().getFiles();
+        this.gxlRoot.graph.id = projectName;
+        this.revisionFiles = range.getRevision().getFiles();
         this.fileAnalyzer = fileAnalyzer;
         this.spoonModel = spoonModel;
     }
 
     /**
-     * TODo
+     * TODo extensive inline doc
      */
     private void run() {
         logger.info("Handle revision: " + range.getOrdinal());
@@ -118,6 +168,28 @@ public class RevisionHandler {
         dirNodeRoot.combineEmptyNodes();
         dirNodeRoot.putChildsIntoGraph(dirRoot, nodeCounter, edgeCounter, dirMap, edgeList);
 
+        // TODO what is with removed files???
+        range.getAddedFiles().forEach(fileChange -> fileChange.getNewFile().ifPresent(vcsFile -> {
+            Optional
+                    .ofNullable(fileMap.get(vcsFile.getRelativePath()))
+                    .ifPresent(gxlFile -> gxlFile.setWasAdded(true));
+        }));
+        range.getModifiedFiles().forEach(fileChange -> fileChange.getNewFile().ifPresent(vcsFile -> {
+            Optional
+                    .ofNullable(fileMap.get(vcsFile.getRelativePath()))
+                    .ifPresent(gxlFile -> gxlFile.setWasModified(true));
+        }));
+        range.getRelocatedFiles().forEach(fileChange -> fileChange.getNewFile().ifPresent(vcsFile -> {
+            Optional
+                    .ofNullable(fileMap.get(vcsFile.getRelativePath()))
+                    .ifPresent(gxlFile -> gxlFile.setWasRelocated(true));
+        }));
+        range.getRemovedFiles().forEach(fileChange -> fileChange.getNewFile().ifPresent(vcsFile -> {
+            Optional
+                    .ofNullable(fileMap.get(vcsFile.getRelativePath()))
+                    .ifPresent(gxlFile -> gxlFile.setWasRemoved(true));
+        }));
+
         analyzeFiles();
 
         // Adds all generated data to gxlRoot, for later export to file
@@ -133,10 +205,12 @@ public class RevisionHandler {
      * @param file
      */
     private void saveToFile(File file) {
+
         try {
             JAXBContext jaxbContext = JAXBContext.newInstance(GxlRoot.class);
             Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            marshaller.setProperty(Marshaller.JAXB_FRAGMENT, true);
             marshaller.setProperty("com.sun.xml.bind.xmlHeaders", "\n<!DOCTYPE gxl SYSTEM \"http://www.gupro.de/GXL/gxl-1.0.dtd\">");
             marshaller.marshal(gxlRoot, file);
         } catch (JAXBException e) {
@@ -157,12 +231,22 @@ public class RevisionHandler {
         });
     }
 
-    public GxlEdge addNewEdge(IGxlId from, IGxlId to, String type) {
+    /**
+     * TODO
+     * @param from
+     * @param to
+     * @param type
+     */
+    public void addNewEdge(IGxlId from, IGxlId to, String type) {
         var gxlEdge = new GxlEdge(edgeCounter.getAndIncrement(), from.getId(), to.getId(), type);
         edgeList.add(gxlEdge);
-        return gxlEdge;
     }
 
+    /**
+     * TODO
+     * @param path
+     * @return
+     */
     private GxlFile addNewFile(Path path) {
         var gxlFile = new GxlFile(
                 nodeCounter.getAndIncrement(),
@@ -178,6 +262,11 @@ public class RevisionHandler {
         return gxlFile;
     }
 
+    /**
+     * TODO
+     * @param path
+     * @return
+     */
     private GxlDir addNewDir(Path path) {
         var gxlDir = new GxlDir(
                 nodeCounter.getAndIncrement(),

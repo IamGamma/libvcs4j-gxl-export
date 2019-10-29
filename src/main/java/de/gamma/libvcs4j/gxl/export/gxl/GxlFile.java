@@ -64,6 +64,18 @@ public class GxlFile implements IGxlId {
     @XmlElement(name = "attr")
     public GxlString sourcePath;
 
+    @XmlElement(name = "attr")
+    public GxlInt wasAdded;
+
+    @XmlElement(name = "attr")
+    public GxlInt wasModified;
+
+    @XmlElement(name = "attr")
+    public GxlInt wasRelocated;
+
+    @XmlElement(name = "attr")
+    public GxlInt wasRemoved;
+
     public GxlFile() {
     }
 
@@ -83,6 +95,38 @@ public class GxlFile implements IGxlId {
         this.linkageName = new GxlString("Linkage.Name", linkageName);
         this.sourceFile = new GxlString("Source.File", sourceFile);
         this.sourcePath = new GxlString("Source.Path", sourcePath);
+    }
+
+    public void setWasAdded(boolean wasAdded) {
+        if (wasAdded) {
+            this.wasAdded = new GxlInt("CodeHistory.WasAdded", 1);
+        } else {
+            this.wasAdded = null;
+        }
+    }
+
+    public void setWasModified(boolean wasModified) {
+        if (wasModified) {
+            this.wasModified = new GxlInt("CodeHistory.WasModified", 1);
+        } else {
+            this.wasModified = null;
+        }
+    }
+
+    public void setWasRelocated(boolean wasRelocated) {
+        if (wasRelocated) {
+            this.wasRelocated = new GxlInt("CodeHistory.WasRelocated", 1);
+        } else {
+            this.wasRelocated = null;
+        }
+    }
+
+    public void setWasRemoved(boolean wasRemoved) {
+        if (wasRemoved) {
+            this.wasRemoved = new GxlInt("CodeHistory.WasRemoved", 1);
+        } else {
+            this.wasRemoved = null;
+        }
     }
 
     @Override

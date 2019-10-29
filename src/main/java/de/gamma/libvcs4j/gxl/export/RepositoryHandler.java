@@ -20,55 +20,72 @@ import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.function.Consumer;
 
+/**
+ * TODO
+ */
 public class RepositoryHandler {
 
-    final static int ALL_REVISIONS = 0;
-    private static final int DEFAULT_MAX_REVISIONS = 40;
-    private static final String DEFAULT_GIT_REPO = "https://github.com/amaembo/streamex.git";
-    private static final String GRAPH_DATA_PATH = "graph-data/";
-
-    private final FileAnalyzer fileAnalyzer = new FileAnalyzer();
     private final Logger logger = LoggerFactory.getLogger(RepositoryHandler.class);
+
+    /**
+     * The default folder in which data loaded from a repository is stored.
+     */
+    private final String GRAPH_DATA_PATH = "graph-data/";
+
+    /**
+     * A file analyzer that unites different file types.
+     */
+    private final FileAnalyzer fileAnalyzer = new FileAnalyzer();
+
+    /**
+     * The repository from which data is to be loaded.
+     */
     private final String repository;
+
+    /**
+     * Specifies how many revisions are to be loaded.
+     */
     private final int maxRevisions;
+
+    /**
+     * A function that is called for every revision with the new revision number.
+     */
     private Consumer<Integer> progressCallback;
 
+    /**
+     * TODO
+     * @param repository The repository from which data is to be loaded.
+     * @param maxRevisions Specifies how many revisions are to be loaded.
+     */
     public RepositoryHandler(String repository, int maxRevisions) {
         this.repository = repository;
         this.maxRevisions = maxRevisions;
-    }
-
-    public RepositoryHandler(String repository) {
-        this(repository, 0);
-    }
-
-    public RepositoryHandler() {
-        this(DEFAULT_GIT_REPO, DEFAULT_MAX_REVISIONS);
     }
 
     public void setProgressCallback(Consumer<Integer> progressCallback) {
         this.progressCallback = progressCallback;
     }
 
-    private void verifyData() {
-        // TODO verify Data
-    }
-
+    /**
+     * TODO
+     */
     public void start() {
-        verifyData();
-
         var projectName = StringUtils.substringAfterLast(repository, "/");
         projectName = StringUtils.substringBefore(projectName, ".");
 
         logger.debug("Delete old generated data");
         var pathData = Paths.get(GRAPH_DATA_PATH, projectName);
         if (Files.exists(pathData)) {
-            try {
-
-                Files.walk(pathData)
-                        .sorted(Comparator.reverseOrder())
+            try (var walk = Files.walk(pathData))
+            {
+                walk.sorted(Comparator.reverseOrder())
                         .map(Path::toFile)
-                        .forEach(File::delete);
+                        .forEach(file -> {
+                            var result = file.delete();
+                            if (!result) {
+                                logger.warn("Could not delete found file " + file.getPath());
+                            }
+                        });
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -80,6 +97,7 @@ public class RepositoryHandler {
                 .build();
 
         try {
+            // TODO ignore Revisions where no analyzable file was changed in any way
             var revisionsPath = Paths.get(GRAPH_DATA_PATH, projectName);
             var spoonModelBuilder = new SpoonModelBuilder();
             Files.createDirectories(revisionsPath);
@@ -108,6 +126,7 @@ public class RepositoryHandler {
         } catch (IOException e) {
             logger.error("Error when iterating revisions:", e);
         }
+        logger.info("Finished exporting data.");
     }
 
 }

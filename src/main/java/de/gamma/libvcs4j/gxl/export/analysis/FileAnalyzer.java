@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Combines IFileAnalyzer for different filytypes in one single point.
@@ -16,10 +17,17 @@ public class FileAnalyzer implements IFileAnalyzer {
     private final HashMap<String, IFileAnalyzer> analyzerMap = new HashMap<>();
     private final List<String> analyzableFileTypes = new ArrayList<>();
 
+    /**
+     * Creates a new FileAnalyzer that combines multiple classes
+     * extending IFileAnalyzer like JavaFileAnalyzer.
+     */
     public FileAnalyzer() {
-        Collections.singletonList(new JavaIFileAnalyzer())
+        Stream
+                .of(new JavaFileAnalyzer())
                 .forEach(analyzer -> {
-                    analyzer.getFileTypes().forEach(fileType -> analyzerMap.put(fileType, analyzer));
+                    for (var fileType : analyzer.getFileTypes()) {
+                        analyzerMap.put(fileType, analyzer);
+                    }
                 });
         analyzableFileTypes.addAll(analyzerMap.keySet());
     }

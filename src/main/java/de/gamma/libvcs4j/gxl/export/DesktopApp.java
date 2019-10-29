@@ -8,22 +8,23 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.Arrays;
 
+import static javax.swing.SwingUtilities.*;
+
+/**
+ * A simple GUI that simplifies loading and analyzing repositories with RepositoryHandler.
+ */
 public class DesktopApp {
 
     public static void main(String[] args) {
-        javax.swing.SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                new DesktopApp().showGui();
-            }
-        });
+        invokeLater(() -> new DesktopApp().showGui());
     }
 
     private static Component spacingH(int height) {
         return Box.createRigidArea(new Dimension(0, height));
     }
 
-    private static Component spacingW(int width) {
-        return Box.createRigidArea(new Dimension(width, 0));
+    private static Component spacingW() {
+        return Box.createRigidArea(new Dimension(10, 0));
     }
 
     private final Logger logger = LoggerFactory.getLogger(DesktopApp.class);
@@ -65,13 +66,11 @@ public class DesktopApp {
         panelButton.setAlignmentX(Component.LEFT_ALIGNMENT);
 
 
-        button.addActionListener(event -> {
-            onButtonClick(textFieldRepo.getText(), textFieldMaxRevision.getText());
-        });
+        button.addActionListener(event -> onButtonClick(textFieldRepo.getText(), textFieldMaxRevision.getText()));
 
         Arrays.asList(
                 progressBar,
-                spacingW(10),
+                spacingW(),
                 button
         ).forEach(panelButton::add);
         Arrays.asList(
@@ -101,15 +100,7 @@ public class DesktopApp {
     }
 
     private void onButtonClick(String fieldRepo, String fieldMaxRevisions) {
-        if (taskRunning) {
-            taskRunning = false;
-            /* TODO loading is not canceled
-            if (worker != null) {
-                worker.cancel(true);
-                worker = null;
-            }
-            */
-        } else {
+        if (!taskRunning) {
             try {
                 var maxRevisions = Integer.parseInt(fieldMaxRevisions);
                 worker = new Worker(fieldRepo, maxRevisions);
@@ -130,19 +121,17 @@ public class DesktopApp {
     }
 
     private void onTaskChangeState() {
-        //textFieldRepo.setEnabled(!taskRunning);
-        //textFieldMaxRevision.setEnabled(!taskRunning);
         if (!taskRunning) {
             progressBar.setValue(0);
             if (textFieldMaxRevision.getText().equals("")) {
                 textFieldMaxRevision.setText("0");
             }
-            button.setText("Export data");
-        } else {
-            button.setText("Abort");
         }
     }
 
+    /**
+     * Loads repositorys in the background and sends progress updates.
+     */
     private class Worker extends SwingWorker<Integer, Integer> {
 
         private final String repository;

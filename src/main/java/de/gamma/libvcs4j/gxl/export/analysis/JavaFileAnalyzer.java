@@ -12,9 +12,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-class JavaIFileAnalyzer implements IFileAnalyzer {
+/**
+ * Represents an IFileAnalyzer that can analyze .java files.
+ */
+class JavaFileAnalyzer implements IFileAnalyzer {
 
-    private final Logger logger = LoggerFactory.getLogger(JavaIFileAnalyzer.class);
+    private final Logger logger = LoggerFactory.getLogger(JavaFileAnalyzer.class);
     private final Metrics metrics = new Metrics();
 
     @Override
@@ -29,9 +32,12 @@ class JavaIFileAnalyzer implements IFileAnalyzer {
                 gxlFile.loc.data = size.getLOC();
                 gxlFile.numberOfTokens.data = size.getNOT();
             });
+
             metrics.computeComplexity(vcsFile).ifPresent(complexity -> {
                 // TODO Put analyzed Data in CSV File
             });
+
+            // find all referenced files and create edges representing the reference
             revisionHandler.spoonModel.findReferencedFiles(vcsFile).stream()
                     .map(referencedVcsFile -> revisionHandler.fileMap.get(referencedVcsFile.getRelativePath()))
                     .filter(Objects::nonNull)

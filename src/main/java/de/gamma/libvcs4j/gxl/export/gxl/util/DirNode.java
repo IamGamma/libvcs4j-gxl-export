@@ -2,6 +2,7 @@ package de.gamma.libvcs4j.gxl.export.gxl.util;
 
 import de.gamma.libvcs4j.gxl.export.gxl.GxlDir;
 import de.gamma.libvcs4j.gxl.export.gxl.GxlEdge;
+import de.gamma.libvcs4j.gxl.export.util.Check;
 
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -9,60 +10,82 @@ import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * TODO
+ */
 public class DirNode {
 
+    /**
+     * TODO
+     */
     private String name;
+
+    /**
+     * TODO
+     */
     private String path;
-    private HashMap<String, DirNode> children;
-    private boolean hasFiles;
 
-    public DirNode() {
-        name = "";
-        children = new HashMap<>();
-        hasFiles = false;
-    }
+    /**
+     * TODO
+     */
+    private HashMap<String, DirNode> children = new HashMap<>();
 
+    /**
+     * TODO
+     */
     public DirNode(String name, String path) {
-        this();
+        Check.notNullOrEmpty(name, "Name can not be null or empty!");
+        Check.notNullOrEmpty(path, "Path can not be null or empty!");
         this.name = name;
         this.path = path;
     }
 
+    /**
+     * TODO
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * TODO
+     */
     public void setName(String name) {
+        Check.notNullOrEmpty(name, "Name can not be null or empty!");
         this.name = name;
     }
 
+    /**
+     * TODO
+     */
     public String getPath() {
         return path;
     }
 
+    /**
+     * TODO
+     */
     public void setPath(String path) {
+        Check.notNullOrEmpty(name, "Name can not be null or empty!");
         this.path = path;
     }
 
+    /**
+     * TODO
+     */
     public HashMap<String, DirNode> getChildren() {
         return children;
     }
 
-    public int getNumberOfChildren() {
-        return children.size();
-    }
-
-    public void setHasFiles(boolean hasFiles) {
-        this.hasFiles = hasFiles;
-    }
-
+    /**
+     * TODO
+     */
     public void combineEmptyNodes() {
         if (children.size() == 1) {
             var onlyChild = children.values().iterator().next();
             name = Paths.get(name, onlyChild.name).toString();
             path = onlyChild.path;
             children = onlyChild.children;
-            // TODO jetzt combined er alle aber die leaf children mit files haben falschen path
             combineEmptyNodes();
         } else {
             children.values().forEach(DirNode::combineEmptyNodes);
