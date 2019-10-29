@@ -71,7 +71,7 @@ public class GxlFile implements IGxlId {
     public GxlInt wasModified;
 
     @XmlElement(name = "attr")
-    public GxlInt wasRelocated;
+    public GxlString wasRelocatedFrom;
 
     @XmlElement(name = "attr")
     public GxlInt wasRemoved;
@@ -113,11 +113,11 @@ public class GxlFile implements IGxlId {
         }
     }
 
-    public void setWasRelocated(boolean wasRelocated) {
-        if (wasRelocated) {
-            this.wasRelocated = new GxlInt("CodeHistory.WasRelocated", 1);
+    public void setWasRelocatedFrom(String wasRelocatedFrom) {
+        if (wasRelocatedFrom != null) {
+            this.wasRelocatedFrom = new GxlString("CodeHistory.WasRelocated", wasRelocatedFrom);
         } else {
-            this.wasRelocated = null;
+            this.wasRelocatedFrom = null;
         }
     }
 

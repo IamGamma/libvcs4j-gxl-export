@@ -7,6 +7,7 @@ import de.gamma.libvcs4j.gxl.export.gxl.GxlFile;
 import de.gamma.libvcs4j.gxl.export.gxl.GxlRoot;
 import de.gamma.libvcs4j.gxl.export.gxl.util.DirNode;
 import de.gamma.libvcs4j.gxl.export.gxl.util.IGxlId;
+import de.unibremen.informatik.st.libvcs4j.FileChange;
 import de.unibremen.informatik.st.libvcs4j.RevisionRange;
 import de.unibremen.informatik.st.libvcs4j.VCSFile;
 import de.unibremen.informatik.st.libvcs4j.spoon.SpoonModel;
@@ -19,10 +20,7 @@ import javax.xml.bind.Marshaller;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -163,32 +161,41 @@ public class RevisionHandler {
                 actualDirNode.getChildren().put(name, newDirNode);
                 actualDirNode = newDirNode;
             }
-            actualDirNode.setHasFiles(true);
         });
         dirNodeRoot.combineEmptyNodes();
         dirNodeRoot.putChildsIntoGraph(dirRoot, nodeCounter, edgeCounter, dirMap, edgeList);
 
         // TODO what is with removed files???
-        range.getAddedFiles().forEach(fileChange -> fileChange.getNewFile().ifPresent(vcsFile -> {
-            Optional
-                    .ofNullable(fileMap.get(vcsFile.getRelativePath()))
-                    .ifPresent(gxlFile -> gxlFile.setWasAdded(true));
-        }));
-        range.getModifiedFiles().forEach(fileChange -> fileChange.getNewFile().ifPresent(vcsFile -> {
-            Optional
-                    .ofNullable(fileMap.get(vcsFile.getRelativePath()))
-                    .ifPresent(gxlFile -> gxlFile.setWasModified(true));
-        }));
-        range.getRelocatedFiles().forEach(fileChange -> fileChange.getNewFile().ifPresent(vcsFile -> {
-            Optional
-                    .ofNullable(fileMap.get(vcsFile.getRelativePath()))
-                    .ifPresent(gxlFile -> gxlFile.setWasRelocated(true));
-        }));
-        range.getRemovedFiles().forEach(fileChange -> fileChange.getNewFile().ifPresent(vcsFile -> {
-            Optional
-                    .ofNullable(fileMap.get(vcsFile.getRelativePath()))
-                    .ifPresent(gxlFile -> gxlFile.setWasRemoved(true));
-        }));
+        range.getAddedFiles().stream()
+                .map(FileChange::getNewFile)
+                .flatMap(Optional::stream)
+                .map(vcsFile -> fileMap.get(vcsFile.getRelativePath()))
+                .filter(Objects::nonNull)
+                .forEach(gxlFile -> gxlFile.setWasAdded(true));
+        range.getModifiedFiles().stream()
+                .map(FileChange::getNewFile)
+                .flatMap(Optional::stream)
+                .map(vcsFile -> fileMap.get(vcsFile.getRelativePath()))
+                .filter(Objects::nonNull)
+                .forEach(gxlFile -> gxlFile.setWasModified(true));
+        range.getRelocatedFiles()
+                .forEach(fileChange -> {
+                    fileChange.getOldFile().ifPresent(oldFile -> {
+                        fileChange
+                                .getNewFile()
+                                .ifPresent(newFile -> {
+                            Optional
+                                    .ofNullable(fileMap.get(newFile.getRelativePath()))
+                                    .ifPresent(gxlFile -> gxlFile.setWasRelocatedFrom(oldFile.getRelativePath()));
+                        });
+                    });
+                });
+        range.getRemovedFiles().stream()
+                .map(FileChange::getNewFile)
+                .flatMap(Optional::stream)
+                .map(vcsFile -> fileMap.get(vcsFile.getRelativePath()))
+                .filter(Objects::nonNull)
+                .forEach(gxlFile -> gxlFile.setWasRemoved(true));
 
         analyzeFiles();
 
