@@ -74,14 +74,16 @@ public class RepositoryHandler {
     }
 
     /**
-     * TODO
+     * When called loads als data from the set repository and starts analyzing it.
      */
     public void start() {
+        // gets the project name of a git repository
         var projectName = StringUtils.substringAfterLast(repository, "/");
         projectName = StringUtils.substringBefore(projectName, ".");
 
         logger.debug("Delete old generated data");
         var pathData = Paths.get(GRAPH_DATA_PATH, projectName);
+        // delete old data from the reposioty, if exists
         if (Files.exists(pathData)) {
             try (var walk = Files.walk(pathData))
             {
@@ -106,17 +108,18 @@ public class RepositoryHandler {
 
             logger.debug(repository + ": check maxRevisions");
             if (maxRevisions == 0) {
+                // load all existing revisions
                 maxRevisions = ((AbstractVSCEngine) vcs).listRevisions().size();
             }
 
             logger.debug(repository + ": start parsing all revisions.");
 
-            // TODO ignore Revisions where no analyzable file was changed in any way
+            // prepare directory for the generated files and SpoonModel
             var revisionsPath = Paths.get(GRAPH_DATA_PATH, projectName);
             var spoonModelBuilder = new SpoonModelBuilder();
             Files.createDirectories(revisionsPath);
-            var revisionCounter = 0;
 
+            var revisionCounter = 0;
             for (RevisionRange range : vcs) {
                 if (progressCallback != null) {
                     if (maxRevisions == 0) {
@@ -125,12 +128,14 @@ public class RepositoryHandler {
                         progressCallback.accept((int) ((revisionCounter / (float) maxRevisions) * 100));
                     }
                 }
+
                 SpoonModel spoonModel = null;
                 try {
                     spoonModel = spoonModelBuilder.update(range);
                 } catch (BuildException e) {
                     logger.error("Error while tring to update SpoonModel for revision " + range.getOrdinal(), e);
                 }
+                // select output file and handle revision
                 var path = Paths.get(revisionsPath.toString(), String.format("%s-%s.gxl", projectName, range.getOrdinal()));
                 var saveFile = new File(path.toAbsolutePath().toString());
                 RevisionHandler.writeToFile(saveFile, range, projectName, fileAnalyzer, spoonModel);

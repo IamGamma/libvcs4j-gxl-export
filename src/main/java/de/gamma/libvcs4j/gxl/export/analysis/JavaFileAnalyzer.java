@@ -22,7 +22,8 @@ class JavaFileAnalyzer implements IFileAnalyzer {
 
     @Override
     public void analyze(RevisionHandler revisionHandler, VCSFile vcsFile) {
-        var gxlFile = revisionHandler.fileMap.get(vcsFile.getRelativePath());
+        var fileMap = revisionHandler.getFileMap();
+        var gxlFile = fileMap.get(vcsFile.getRelativePath());
         if (gxlFile == null) {
             logger.error("There is no gxl node registered for the VCSFile " + vcsFile.getRelativePath());
             return;
@@ -39,7 +40,7 @@ class JavaFileAnalyzer implements IFileAnalyzer {
 
             // find all referenced files and create edges representing the reference
             revisionHandler.getSpoonModel().findReferencedFiles(vcsFile).stream()
-                    .map(referencedVcsFile -> revisionHandler.fileMap.get(referencedVcsFile.getRelativePath()))
+                    .map(referencedVcsFile -> fileMap.get(referencedVcsFile.getRelativePath()))
                     .filter(Objects::nonNull)
                     .distinct()
                     .filter(referencedGxlFile -> referencedGxlFile != gxlFile)

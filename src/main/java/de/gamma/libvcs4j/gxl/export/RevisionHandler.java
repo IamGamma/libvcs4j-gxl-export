@@ -7,6 +7,7 @@ import de.gamma.libvcs4j.gxl.export.gxl.GxlFile;
 import de.gamma.libvcs4j.gxl.export.gxl.GxlRoot;
 import de.gamma.libvcs4j.gxl.export.gxl.util.DirNode;
 import de.gamma.libvcs4j.gxl.export.gxl.util.IGxlId;
+import de.gamma.libvcs4j.gxl.export.util.Check;
 import de.unibremen.informatik.st.libvcs4j.FileChange;
 import de.unibremen.informatik.st.libvcs4j.RevisionRange;
 import de.unibremen.informatik.st.libvcs4j.VCSFile;
@@ -26,96 +27,115 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * TODO
+ * Processes a RevisionRange and stores the exported data in a gxl file.
  */
 public class RevisionHandler {
 
     private final Logger logger = LoggerFactory.getLogger(RevisionHandler.class);
 
     /**
-     * TODO private
+     * The RevisionRange for this RevisionHandler
      */
     private final RevisionRange range;
 
     /**
-     * TODO private
+     * The updated SpoonModel for range
      */
     private final SpoonModel spoonModel;
 
     /**
-     * TODO
+     * The GxlRoot containing all gxl data
      */
     private final GxlRoot gxlRoot = new GxlRoot();
 
     /**
-     * TODO
+     * The underlying list containing all Edges. The list is not threadsafe.
      */
     private final List<GxlEdge> edgeListUnsafe = new ArrayList<>();
 
     /**
-     * TODO
+     * A counter, so that each Edge created has its own Id
      */
     private final AtomicInteger edgeCounter = new AtomicInteger(0);
 
     /**
-     * TODO
+     * A counter, so that each GxlDir or GxlFile created has its own Id
      */
     private final AtomicInteger nodeCounter = new AtomicInteger(0);
 
     /**
-     * TODO
+     * Contains all created GxlDir, with their path as key.
      */
     private final ConcurrentMap<String, GxlDir> dirMap = new ConcurrentHashMap<>();
 
     /**
-     * TODO private
+     * Contains all created GxlFile, with their path as key.
      */
-    public final ConcurrentMap<String, GxlFile> fileMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, GxlFile> fileMap = new ConcurrentHashMap<>();
 
     /**
-     * TODO
+     * Contains all created GxlEdge.
      */
     private final List<GxlEdge> edgeList = Collections.synchronizedList(edgeListUnsafe);
 
     /**
-     * TODO
+     * The root GxlDir of the loaded repository.
      */
-    private final GxlDir dirRoot;
+    private final GxlDir gxlDirRoot;
 
-    /**
-     * TODO
-     */
-    private final List<VCSFile> revisionFiles;
-
-    /**
-     * TODO
-     */
     private final IFileAnalyzer fileAnalyzer;
 
     /**
-     * TODO
+     * @return the GxlDir used als rot dir.
      */
-    private final String projectName;
+    public GxlDir getGxlDirRoot() {
+        return gxlDirRoot;
+    }
 
     /**
-     * TODO
-     *
-     * @param file
-     * @param range
-     * @param projectName
+     * @return a map containing all created GxlFiles.
+     */
+    public ConcurrentMap<String, GxlFile> getFileMap() {
+        return fileMap;
+    }
+
+    /**
+     * @return a map containing all created GxlDirs.
+     */
+    public ConcurrentMap<String, GxlDir> getDirMap() {
+        return dirMap;
+    }
+
+    /**
+     * @return a list containing all created GxlEdges.
+     */
+    public List<GxlEdge> getEdgeList() {
+        return edgeList;
+    }
+
+    /**
+     * Processes a RevisionRange and stores the exported data in a gxl file.
+     * @param file where the gxl is saved
+     * @param range the RevisionRange to process
+     * @param projectName the name of the processed project
      */
     public static void writeToFile(File file, RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
-        // TODO argument check
+        Check.notNull(file, "file must not be null.");
+        Check.notNull(range, "range must not be null");
+        Check.notNullOrEmpty(projectName, "projectName must not be null or empty");
+        Check.notNull(fileAnalyzer, "fileAnalyzer must not be null");
+        Check.notNull(spoonModel, "spoonModel must not be null");
+
         var handler = new RevisionHandler(range, projectName, fileAnalyzer, spoonModel);
         handler.run();
         handler.saveToFile(file);
     }
 
     /**
-     * TODO
-     * @param from
-     * @param to
-     * @param type
+     * Creates a new GxlEdge and saves it.
+     * @param from the source
+     * @param to the target
+     * @param type the GxlEdge type
      */
     public void addNewEdge(IGxlId from, IGxlId to, String type) {
         var gxlEdge = new GxlEdge(edgeCounter.getAndIncrement(), from.getId(), to.getId(), type);
@@ -123,8 +143,42 @@ public class RevisionHandler {
     }
 
     /**
-     * TODO
-     * @return
+     * Creates a new GxlFile and saves it.
+     * @param path the path of the created GxlFile
+     * @return the created GxlFile
+     */
+    public GxlFile addNewFile(Path path) {
+        var gxlFile = new GxlFile(
+                nodeCounter.getAndIncrement(),
+                0,
+                0,
+                0,
+                path.getFileName().toString(),
+                path.toString(),
+                path.getFileName().toString(),
+                path.toString());
+
+        fileMap.put(gxlFile.linkageName.data, gxlFile);
+        return gxlFile;
+    }
+
+    /**
+     * Creates a new GxlDir and saves it.
+     * @param path the path of the created GxlDir
+     * @return the created GxlDir
+     */
+    public GxlDir addNewDir(Path path) {
+        var gxlDir = new GxlDir(
+                nodeCounter.getAndIncrement(),
+                path.getFileName().toString(),
+                path.toString()
+        );
+        dirMap.put(path.toString(), gxlDir);
+        return gxlDir;
+    }
+
+    /**
+     * @return the updated SpoonModel
      */
     public SpoonModel getSpoonModel() {
         return spoonModel;
@@ -135,43 +189,42 @@ public class RevisionHandler {
         return "RevisionHandler for " + range.getOrdinal() + " - " + range.getRevision().getId();
     }
 
-    /**
-     * TODo
-     *
-     * @param range
-     * @param projectName
-     */
     private RevisionHandler(RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
         this.range = range;
-        this.projectName = projectName;
         this.gxlRoot.graph.id = projectName;
-        this.revisionFiles = range.getRevision().getFiles();
         this.fileAnalyzer = fileAnalyzer;
         this.spoonModel = spoonModel;
-        this.dirRoot = new GxlDir(
+        this.gxlDirRoot = new GxlDir(
                 nodeCounter.getAndIncrement(),
                 projectName,
                 projectName
         );
     }
 
+    private List<VCSFile> getRevisionVCSFiles() {
+        return range.getRevision().getFiles();
+    }
+
     /**
-     * TODo extensive inline doc
+     * Executes all functions to create the gxl data.
      */
     private void run() {
         extractGxlFilesAndBareGxlDir();
-        correctGxlDirTreeStructure();
+        logger.debug(toString() + ": correct gxl dir tree structure.");
+        DirNode.calculateRealGxlDirectories(this);
         loadFileChangeInfoIntoGxlFiles();
         analyzeFiles();
         putLoadedDataIntoGxl();
     }
 
     /**
-     * TODO
+     * Creates all GxlFiles using the VCSFiles in the revision,
+     * your GxlDir without the real folder structure
+     * and the GxlEdge to the GxlDir.
      */
     private void extractGxlFilesAndBareGxlDir() {
         logger.debug(toString() + ": extract gxlfiles and bare gxldirs.");
-        revisionFiles.stream().filter(vcsFile -> fileAnalyzer.getFileTypes().stream().anyMatch(vcsFile.getRelativePath()::endsWith)).forEach(vcsFile -> {
+        getRevisionVCSFiles().stream().filter(vcsFile -> fileAnalyzer.getFileTypes().stream().anyMatch(vcsFile.getRelativePath()::endsWith)).forEach(vcsFile -> {
             var path = Paths.get(vcsFile.getRelativePath());
             var file = addNewFile(path);
             // create lowest directory that only contain files an no other directorys
@@ -184,36 +237,15 @@ public class RevisionHandler {
                     dir = addNewDir(parentPath);
                 }
             } else {
-                // Wenn es kein parentPath gibt, liegt die Datei im Hauptverzeichnis eines Projekts
-                dir = dirRoot;
+                // if parent path is null its the root directory
+                dir = gxlDirRoot;
             }
             addNewEdge(file, dir, GxlEdge.TYPE_ENCLOSING);
         });
     }
 
     /**
-     * TODO
-     */
-    private void correctGxlDirTreeStructure() {
-        logger.debug(toString() + ": correct gxl dir tree structure.");
-        // formats the generated DirNodes to represent the real filestructure
-        var dirNodeRoot = new DirNode("", "");
-        dirMap.values().forEach(dir -> {
-            var actualDirNode = dirNodeRoot;
-            for (Path subPath : Paths.get(dir.linkageName.data)) {
-                var name = subPath.getFileName().toString();
-
-                var newDirNode = actualDirNode.getChildren().getOrDefault(name, new DirNode(name, Paths.get(actualDirNode.getPath(), name).toString()));
-                actualDirNode.getChildren().put(name, newDirNode);
-                actualDirNode = newDirNode;
-            }
-        });
-
-        dirNodeRoot.putChildsIntoGraph(dirRoot, nodeCounter, edgeCounter, dirMap, edgeList);
-    }
-
-    /**
-     * TODO
+     * Adds information about file changes to the generated Gxl files.
      */
     private void loadFileChangeInfoIntoGxlFiles() {
         logger.debug("Load filechange info into gxlfiles.");
@@ -252,11 +284,11 @@ public class RevisionHandler {
     }
 
     /**
-     * TODO
+     * Analyzes all GxlFiles.
      */
     private void analyzeFiles() {
         logger.debug(toString() + ": analyze code files.");
-        revisionFiles.forEach(vcsFile -> {
+        getRevisionVCSFiles().forEach(vcsFile -> {
             var gxlFile = fileMap.get(vcsFile.getRelativePath());
             if (gxlFile == null) {
                 return;
@@ -266,54 +298,19 @@ public class RevisionHandler {
     }
 
     /**
-     * TODO
+     * Puts all created gxl data in the correct position for export.
      */
-    private void putLoadedDataIntoGxl() {
+    public void putLoadedDataIntoGxl() {
         gxlRoot.graph.files.addAll(fileMap.values());
         gxlRoot.graph.edges.addAll(edgeList);
         gxlRoot.graph.dirs.addAll(dirMap.values());
-        gxlRoot.graph.dirs.add(dirRoot);
+        gxlRoot.graph.dirs.add(gxlDirRoot);
     }
 
     /**
-     * TODO
-     * @param path
-     * @return
-     */
-    private GxlFile addNewFile(Path path) {
-        var gxlFile = new GxlFile(
-                nodeCounter.getAndIncrement(),
-                0,
-                0,
-                0,
-                path.getFileName().toString(),
-                path.toString(),
-                path.getFileName().toString(),
-                path.toString());
-
-        fileMap.put(gxlFile.linkageName.data, gxlFile);
-        return gxlFile;
-    }
-
-    /**
-     * TODO
-     * @param path
-     * @return
-     */
-    private GxlDir addNewDir(Path path) {
-        var gxlDir = new GxlDir(
-                nodeCounter.getAndIncrement(),
-                path.getFileName().toString(),
-                path.toString()
-        );
-        dirMap.put(path.toString(), gxlDir);
-        return gxlDir;
-    }
-
-    /**
-     * TODO
+     * Saves all created gxl data into a given file.
      *
-     * @param file
+     * @param file where the data is saved
      */
     private void saveToFile(File file) {
         logger.debug(toString() + ": save to file.");

@@ -109,11 +109,11 @@ public class DesktopApp {
                         progressBar.setValue((Integer) event.getNewValue());
                 });
                 worker.execute();
-                logger.info(String.format("Exportiere %s Datensätze von %s.", maxRevisions, fieldRepo));
+                logger.info(String.format("Exporting %s datasets from %s.", maxRevisions, fieldRepo));
                 setInfo("Loading data, this may take a moment.");
                 taskRunning = true;
             }catch (NumberFormatException e) {
-                logger.info("Anzahl der maximalen Revisionen ist keine gültige Zahl.");
+                logger.info("Maximum number of revisions is not a valid number.");
                 setInfo("Field for maximum revisions is not a valid number.");
             }
         }
