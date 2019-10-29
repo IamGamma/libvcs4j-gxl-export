@@ -21,7 +21,7 @@ import java.util.Comparator;
 import java.util.function.Consumer;
 
 /**
- * TODO
+ * Pulls information from a repository.
  */
 public class RepositoryHandler {
 
@@ -45,7 +45,7 @@ public class RepositoryHandler {
     /**
      * Specifies how many revisions are to be loaded.
      */
-    private final int maxRevisions;
+    private int maxRevisions;
 
     /**
      * A function that is called for every revision with the new revision number.
@@ -53,7 +53,9 @@ public class RepositoryHandler {
     private Consumer<Integer> progressCallback;
 
     /**
-     * TODO
+     * Creates a new RepositoryHandler that extracts gxl data from a
+     * repository with the given address. In doing so, maxRevisions
+     * determines the number of revisions to extract.
      * @param repository The repository from which data is to be loaded.
      * @param maxRevisions Specifies how many revisions are to be loaded.
      */
@@ -62,6 +64,11 @@ public class RepositoryHandler {
         this.maxRevisions = maxRevisions;
     }
 
+    /**
+     * Sets the progress callback, that is updated with the revision number,
+     * that is being exported.
+     * @param progressCallback The function that is called, when the next revision is loaded.
+     */
     public void setProgressCallback(Consumer<Integer> progressCallback) {
         this.progressCallback = progressCallback;
     }
@@ -91,21 +98,26 @@ public class RepositoryHandler {
             }
         }
 
-        logger.debug("Loading Vcs: " + repository);
-        VCSEngine vcs = VCSEngineBuilder
-                .ofGit(repository)
-                .build();
-
         try {
+            logger.debug("Loading Vcs: " + repository);
+            VCSEngine vcs = VCSEngineBuilder
+                    .ofGit(repository)
+                    .build();
+
+            logger.debug(repository + ": check maxRevisions");
+            if (maxRevisions == 0) {
+                maxRevisions = ((AbstractVSCEngine) vcs).listRevisions().size();
+            }
+
+            logger.debug(repository + ": start parsing all revisions.");
+
             // TODO ignore Revisions where no analyzable file was changed in any way
             var revisionsPath = Paths.get(GRAPH_DATA_PATH, projectName);
             var spoonModelBuilder = new SpoonModelBuilder();
             Files.createDirectories(revisionsPath);
             var revisionCounter = 0;
+
             for (RevisionRange range : vcs) {
-                if (++revisionCounter > maxRevisions) {
-                    break;
-                }
                 if (progressCallback != null) {
                     if (maxRevisions == 0) {
                         progressCallback.accept((int) ((revisionCounter / (float) ((AbstractVSCEngine) vcs).listRevisions().size()) * 100));
@@ -122,11 +134,14 @@ public class RepositoryHandler {
                 var path = Paths.get(revisionsPath.toString(), String.format("%s-%s.gxl", projectName, range.getOrdinal()));
                 var saveFile = new File(path.toAbsolutePath().toString());
                 RevisionHandler.writeToFile(saveFile, range, projectName, fileAnalyzer, spoonModel);
+
+                if (++revisionCounter > maxRevisions) {
+                    break;
+                }
             }
         } catch (IOException e) {
             logger.error("Error when iterating revisions:", e);
         }
         logger.info("Finished exporting data.");
     }
-
 }

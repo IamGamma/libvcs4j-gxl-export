@@ -4,6 +4,12 @@ import javax.xml.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents the graph node inside a gxl file.
+ * <graph id="" edgeids="true">
+ * Needs to be inside a GxlRoot object to create
+ * a correct structured gxl file.
+ */
 @XmlRootElement(name = "graph")
 public class GxlGraph {
 
@@ -22,6 +28,9 @@ public class GxlGraph {
     @XmlElement(name = "edge")
     public final List<GxlEdge> edges = new ArrayList<>();
 
+    /**
+     * An empty constructor, required for JAXB.
+     */
     public GxlGraph() {}
 
     public GxlGraph(String id) {

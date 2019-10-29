@@ -15,64 +15,40 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DirNode {
 
-    /**
-     * TODO
-     */
     private String name;
 
-    /**
-     * TODO
-     */
     private String path;
 
-    /**
-     * TODO
-     */
     private HashMap<String, DirNode> children = new HashMap<>();
 
     /**
      * TODO
      */
     public DirNode(String name, String path) {
-        Check.notNullOrEmpty(name, "Name can not be null or empty!");
-        Check.notNullOrEmpty(path, "Path can not be null or empty!");
+        Check.notNull(name, "Name can not be null!");
+        Check.notNull(path, "Path can not be null!");
         this.name = name;
         this.path = path;
     }
 
-    /**
-     * TODO
-     */
     public String getName() {
         return name;
     }
 
-    /**
-     * TODO
-     */
     public void setName(String name) {
         Check.notNullOrEmpty(name, "Name can not be null or empty!");
         this.name = name;
     }
 
-    /**
-     * TODO
-     */
     public String getPath() {
         return path;
     }
 
-    /**
-     * TODO
-     */
     public void setPath(String path) {
         Check.notNullOrEmpty(name, "Name can not be null or empty!");
         this.path = path;
     }
 
-    /**
-     * TODO
-     */
     public HashMap<String, DirNode> getChildren() {
         return children;
     }
@@ -80,7 +56,7 @@ public class DirNode {
     /**
      * TODO
      */
-    public void combineEmptyNodes() {
+    private void combineEmptyNodes() {
         if (children.size() == 1) {
             var onlyChild = children.values().iterator().next();
             name = Paths.get(name, onlyChild.name).toString();
@@ -101,6 +77,7 @@ public class DirNode {
      * @param edgeList
      */
     public void putChildsIntoGraph(GxlDir root, AtomicInteger nodeCounter, AtomicInteger edgeCounter, ConcurrentMap<String, GxlDir> dirMap, List<GxlEdge> edgeList) {
+        combineEmptyNodes();
         for (DirNode child : children.values()) {
             child.putIntoGraph(root, nodeCounter, edgeCounter, dirMap, edgeList);
         }

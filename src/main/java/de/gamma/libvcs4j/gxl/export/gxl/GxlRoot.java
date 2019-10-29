@@ -4,10 +4,12 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-//  <?xml version="1.0" encoding="UTF-8"?>
-//  <!DOCTYPE gxl SYSTEM "http://www.gupro.de/GXL/gxl-1.0.dtd">
-//  <gxl xmlns:xlink="http://www.w3.org/1999/xlink">
-//  <graph id="fs" edgeids="true">
+/**
+ * Represents the root element <gxl xmlns:xlink="http://www.w3.org/1999/xlink">
+ * in a gxl file. An object of this class can be automatically
+ * converted to xml with JAXB and stored in any destination.
+ *
+ */
 @XmlRootElement(name = "gxl")
 public class GxlRoot {
 
@@ -17,5 +19,8 @@ public class GxlRoot {
     @XmlElement(name = "graph")
     public final GxlGraph graph = new GxlGraph();
 
+    /**
+     * An empty constructor, required for JAXB.
+     */
     public GxlRoot() {}
 }

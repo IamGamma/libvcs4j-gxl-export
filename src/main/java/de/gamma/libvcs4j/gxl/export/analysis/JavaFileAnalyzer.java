@@ -38,14 +38,14 @@ class JavaFileAnalyzer implements IFileAnalyzer {
             });
 
             // find all referenced files and create edges representing the reference
-            revisionHandler.spoonModel.findReferencedFiles(vcsFile).stream()
+            revisionHandler.getSpoonModel().findReferencedFiles(vcsFile).stream()
                     .map(referencedVcsFile -> revisionHandler.fileMap.get(referencedVcsFile.getRelativePath()))
                     .filter(Objects::nonNull)
                     .distinct()
                     .filter(referencedGxlFile -> referencedGxlFile != gxlFile)
                     .forEach(referencedGxlFile -> revisionHandler.addNewEdge(gxlFile, referencedGxlFile, GxlEdge.TYPE_CLONE));
         } catch (IOException e) {
-            logger.error("Error when analyzing file " + vcsFile.getRelativePath() + " from revision " + revisionHandler.range.getOrdinal(), e);
+            logger.error("Error when analyzing file " + vcsFile.getRelativePath() + " from revision " + revisionHandler.toString(), e);
         }
     }
 

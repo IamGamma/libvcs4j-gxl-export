@@ -33,6 +33,16 @@ public class RevisionHandler {
     private final Logger logger = LoggerFactory.getLogger(RevisionHandler.class);
 
     /**
+     * TODO private
+     */
+    private final RevisionRange range;
+
+    /**
+     * TODO private
+     */
+    private final SpoonModel spoonModel;
+
+    /**
      * TODO
      */
     private final GxlRoot gxlRoot = new GxlRoot();
@@ -68,9 +78,9 @@ public class RevisionHandler {
     private final List<GxlEdge> edgeList = Collections.synchronizedList(edgeListUnsafe);
 
     /**
-     * TODO private
+     * TODO
      */
-    public final RevisionRange range;
+    private final GxlDir dirRoot;
 
     /**
      * TODO
@@ -88,22 +98,41 @@ public class RevisionHandler {
     private final String projectName;
 
     /**
-     * TODO private
-     */
-    public final SpoonModel spoonModel;
-
-    /**
      * TODO
      *
      * @param file
      * @param range
      * @param projectName
      */
-    static void writeToFile(File file, RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
+    public static void writeToFile(File file, RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
         // TODO argument check
         var handler = new RevisionHandler(range, projectName, fileAnalyzer, spoonModel);
         handler.run();
         handler.saveToFile(file);
+    }
+
+    /**
+     * TODO
+     * @param from
+     * @param to
+     * @param type
+     */
+    public void addNewEdge(IGxlId from, IGxlId to, String type) {
+        var gxlEdge = new GxlEdge(edgeCounter.getAndIncrement(), from.getId(), to.getId(), type);
+        edgeList.add(gxlEdge);
+    }
+
+    /**
+     * TODO
+     * @return
+     */
+    public SpoonModel getSpoonModel() {
+        return spoonModel;
+    }
+
+    @Override
+    public String toString() {
+        return "RevisionHandler for " + range.getOrdinal() + " - " + range.getRevision().getId();
     }
 
     /**
@@ -119,23 +148,34 @@ public class RevisionHandler {
         this.revisionFiles = range.getRevision().getFiles();
         this.fileAnalyzer = fileAnalyzer;
         this.spoonModel = spoonModel;
+        this.dirRoot = new GxlDir(
+                nodeCounter.getAndIncrement(),
+                projectName,
+                projectName
+        );
     }
 
     /**
      * TODo extensive inline doc
      */
     private void run() {
-        logger.info("Handle revision: " + range.getOrdinal());
+        extractGxlFilesAndBareGxlDir();
+        correctGxlDirTreeStructure();
+        loadFileChangeInfoIntoGxlFiles();
+        analyzeFiles();
+        putLoadedDataIntoGxl();
+    }
 
-        var dirRoot = new GxlDir(
-                nodeCounter.getAndIncrement(),
-                projectName,
-                projectName
-        );
-
+    /**
+     * TODO
+     */
+    private void extractGxlFilesAndBareGxlDir() {
+        logger.debug(toString() + ": extract gxlfiles and bare gxldirs.");
         revisionFiles.stream().filter(vcsFile -> fileAnalyzer.getFileTypes().stream().anyMatch(vcsFile.getRelativePath()::endsWith)).forEach(vcsFile -> {
             var path = Paths.get(vcsFile.getRelativePath());
             var file = addNewFile(path);
+            // create lowest directory that only contain files an no other directorys
+            // so that the created GxlFile are enclosed
             GxlDir dir;
             var parentPath = path.getParent();
             if (parentPath != null) {
@@ -149,7 +189,13 @@ public class RevisionHandler {
             }
             addNewEdge(file, dir, GxlEdge.TYPE_ENCLOSING);
         });
+    }
 
+    /**
+     * TODO
+     */
+    private void correctGxlDirTreeStructure() {
+        logger.debug(toString() + ": correct gxl dir tree structure.");
         // formats the generated DirNodes to represent the real filestructure
         var dirNodeRoot = new DirNode("", "");
         dirMap.values().forEach(dir -> {
@@ -162,10 +208,15 @@ public class RevisionHandler {
                 actualDirNode = newDirNode;
             }
         });
-        dirNodeRoot.combineEmptyNodes();
-        dirNodeRoot.putChildsIntoGraph(dirRoot, nodeCounter, edgeCounter, dirMap, edgeList);
 
-        // TODO what is with removed files???
+        dirNodeRoot.putChildsIntoGraph(dirRoot, nodeCounter, edgeCounter, dirMap, edgeList);
+    }
+
+    /**
+     * TODO
+     */
+    private void loadFileChangeInfoIntoGxlFiles() {
+        logger.debug("Load filechange info into gxlfiles.");
         range.getAddedFiles().stream()
                 .map(FileChange::getNewFile)
                 .flatMap(Optional::stream)
@@ -184,10 +235,12 @@ public class RevisionHandler {
                         fileChange
                                 .getNewFile()
                                 .ifPresent(newFile -> {
-                            Optional
-                                    .ofNullable(fileMap.get(newFile.getRelativePath()))
-                                    .ifPresent(gxlFile -> gxlFile.setWasRelocatedFrom(oldFile.getRelativePath()));
-                        });
+                                    Optional
+                                            .ofNullable(fileMap.get(newFile.getRelativePath()))
+                                            .ifPresent(gxlFile -> {
+                                                gxlFile.setWasRelocatedFrom(oldFile.getRelativePath());
+                                            });
+                                });
                     });
                 });
         range.getRemovedFiles().stream()
@@ -196,39 +249,13 @@ public class RevisionHandler {
                 .map(vcsFile -> fileMap.get(vcsFile.getRelativePath()))
                 .filter(Objects::nonNull)
                 .forEach(gxlFile -> gxlFile.setWasRemoved(true));
-
-        analyzeFiles();
-
-        // Adds all generated data to gxlRoot, for later export to file
-        gxlRoot.graph.files.addAll(fileMap.values());
-        gxlRoot.graph.edges.addAll(edgeList);
-        gxlRoot.graph.dirs.addAll(dirMap.values());
-        gxlRoot.graph.dirs.add(dirRoot);
-    }
-
-    /**
-     * TODO
-     *
-     * @param file
-     */
-    private void saveToFile(File file) {
-
-        try {
-            JAXBContext jaxbContext = JAXBContext.newInstance(GxlRoot.class);
-            Marshaller marshaller = jaxbContext.createMarshaller();
-            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            marshaller.setProperty(Marshaller.JAXB_FRAGMENT, true);
-            marshaller.setProperty("com.sun.xml.bind.xmlHeaders", "\n<!DOCTYPE gxl SYSTEM \"http://www.gupro.de/GXL/gxl-1.0.dtd\">");
-            marshaller.marshal(gxlRoot, file);
-        } catch (JAXBException e) {
-            logger.error("Error while trying to save revision to gxl file:", e);
-        }
     }
 
     /**
      * TODO
      */
     private void analyzeFiles() {
+        logger.debug(toString() + ": analyze code files.");
         revisionFiles.forEach(vcsFile -> {
             var gxlFile = fileMap.get(vcsFile.getRelativePath());
             if (gxlFile == null) {
@@ -240,13 +267,12 @@ public class RevisionHandler {
 
     /**
      * TODO
-     * @param from
-     * @param to
-     * @param type
      */
-    public void addNewEdge(IGxlId from, IGxlId to, String type) {
-        var gxlEdge = new GxlEdge(edgeCounter.getAndIncrement(), from.getId(), to.getId(), type);
-        edgeList.add(gxlEdge);
+    private void putLoadedDataIntoGxl() {
+        gxlRoot.graph.files.addAll(fileMap.values());
+        gxlRoot.graph.edges.addAll(edgeList);
+        gxlRoot.graph.dirs.addAll(dirMap.values());
+        gxlRoot.graph.dirs.add(dirRoot);
     }
 
     /**
@@ -282,5 +308,24 @@ public class RevisionHandler {
         );
         dirMap.put(path.toString(), gxlDir);
         return gxlDir;
+    }
+
+    /**
+     * TODO
+     *
+     * @param file
+     */
+    private void saveToFile(File file) {
+        logger.debug(toString() + ": save to file.");
+        try {
+            JAXBContext jaxbContext = JAXBContext.newInstance(GxlRoot.class);
+            Marshaller marshaller = jaxbContext.createMarshaller();
+            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            marshaller.setProperty(Marshaller.JAXB_FRAGMENT, true);
+            marshaller.setProperty("com.sun.xml.bind.xmlHeaders", "\n<!DOCTYPE gxl SYSTEM \"http://www.gupro.de/GXL/gxl-1.0.dtd\">");
+            marshaller.marshal(gxlRoot, file);
+        } catch (JAXBException e) {
+            logger.error("Error while trying to save revision to gxl file:", e);
+        }
     }
 }

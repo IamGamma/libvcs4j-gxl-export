@@ -8,6 +8,12 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+/**
+ * Represents a directory node inside a gxl file.
+ * For example <node id="N2">
+ * Needs to be inside a GxlGraph object to create
+ * a correct structured gxl file.
+ */
 @XmlRootElement(name = "node")
 public class GxlDir implements IGxlId {
 
@@ -23,8 +29,10 @@ public class GxlDir implements IGxlId {
     @XmlElement(name = "attr")
     public GxlString linkageName;
 
+    /**
+     * An empty constructor, required for JAXB.
+     */
     public GxlDir() {
-
     }
 
     public GxlDir(int id,

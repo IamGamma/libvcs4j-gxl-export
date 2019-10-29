@@ -10,30 +10,12 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-//    <node id="N1">
-//      <type xlink:href="File"/>
-//      <attr name="Metric.Number_of_Tokens">
-//        <int>1496</int>
-//      </attr>
-//      <attr name="Metric.LOC">
-//        <int>273</int>
-//      </attr>
-//      <attr name="Metric.Clone_Rate">
-//        <float>0</float>
-//      </attr>
-//      <attr name="Source.Name">
-//        <string>acl.c</string>
-//      </attr>
-//      <attr name="Linkage.Name">
-//        <string>fs/9p/acl.c</string>
-//      </attr>
-//      <attr name="Source.File">
-//        <string>acl.c</string>
-//      </attr>
-//      <attr name="Source.Path">
-//        <string>fs/9p/acl.c</string>
-//      </attr>
-//    </node>
+/**
+ * Represents a file node inside a gxl file.
+ * For example <node id="N1">
+ * Needs to be inside a GxlGraph object to create
+ * a correct structured gxl file.
+ */
 @XmlRootElement(name = "node")
 public class GxlFile implements IGxlId {
 
@@ -76,6 +58,9 @@ public class GxlFile implements IGxlId {
     @XmlElement(name = "attr")
     public GxlInt wasRemoved;
 
+    /**
+     * An empty constructor, required for JAXB.
+     */
     public GxlFile() {
     }
 

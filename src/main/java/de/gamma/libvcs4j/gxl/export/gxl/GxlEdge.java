@@ -6,9 +6,12 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-//    <edge id="E520" from="N598" to="N585">
-//      <type xlink:href="Enclosing"/>
-//    </edge>
+/**
+ * Represents a edge node inside a gxl file.
+ * For example <edge id="E1" from="N3" to="N4">
+ * Needs to be inside a GxlGraph object to create
+ * a correct structured gxl file.
+ */
 @XmlRootElement(name = "edge")
 public class GxlEdge {
 
@@ -24,8 +27,10 @@ public class GxlEdge {
     @XmlElement(name = "type")
     public GxlType type;
 
+    /**
+     * An empty constructor, required for JAXB.
+     */
     public GxlEdge() {
-
     }
 
     public GxlEdge(int id, String from, String to, String type) {
