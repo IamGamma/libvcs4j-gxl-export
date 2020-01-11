@@ -43,6 +43,12 @@ public class RepositoryHandler {
     private final String repository;
 
     /**
+     * The branch from which data is to be loaded.
+     */
+    private final String branch;
+
+
+    /**
      * Specifies how many revisions are to be loaded.
      */
     private int maxRevisions;
@@ -59,9 +65,10 @@ public class RepositoryHandler {
      * @param repository The repository from which data is to be loaded.
      * @param maxRevisions Specifies how many revisions are to be loaded.
      */
-    public RepositoryHandler(String repository, int maxRevisions) {
+    public RepositoryHandler(String repository, String branch, int maxRevisions) {
         this.repository = repository;
         this.maxRevisions = maxRevisions;
+        this.branch = branch;
     }
 
     /**
@@ -81,7 +88,7 @@ public class RepositoryHandler {
         var projectName = StringUtils.substringAfterLast(repository, "/");
         projectName = StringUtils.substringBefore(projectName, ".");
 
-        logger.debug("Delete old generated data");
+        logger.info("Delete old generated data");
         var pathData = Paths.get(GRAPH_DATA_PATH, projectName);
         // delete old data from the reposioty, if exists
         if (Files.exists(pathData)) {
@@ -101,26 +108,29 @@ public class RepositoryHandler {
         }
 
         try {
-            logger.debug("Loading Vcs: " + repository);
+            logger.info("Loading Vcs: " + repository);
             VCSEngine vcs = VCSEngineBuilder
                     .ofGit(repository)
+                    .withBranch(branch)
                     .build();
 
-            logger.debug(repository + ": check maxRevisions");
+            logger.info(repository + ": check maxRevisions");
             if (maxRevisions == 0) {
                 // load all existing revisions
                 maxRevisions = ((AbstractVSCEngine) vcs).listRevisions().size();
             }
 
-            logger.debug(repository + ": start parsing all revisions.");
-
+            logger.info(repository + ": create spoon model.");
             // prepare directory for the generated files and SpoonModel
-            var revisionsPath = Paths.get(GRAPH_DATA_PATH, projectName);
             var spoonModelBuilder = new SpoonModelBuilder();
-            Files.createDirectories(revisionsPath);
+            Files.createDirectories(pathData);
 
+            logger.info(repository + ": start parsing " + maxRevisions + " revisions.");
             var revisionCounter = 0;
+            var startMillis = System.currentTimeMillis();
+            logger.info("Start loading repodata at (system millis): " + startMillis);
             for (RevisionRange range : vcs) {
+                logger.info("Analyzing revision: " + range.getOrdinal());
                 if (progressCallback != null) {
                     if (maxRevisions == 0) {
                         progressCallback.accept((int) ((revisionCounter / (float) ((AbstractVSCEngine) vcs).listRevisions().size()) * 100));
@@ -136,17 +146,18 @@ public class RepositoryHandler {
                     logger.error("Error while tring to update SpoonModel for revision " + range.getOrdinal(), e);
                 }
                 // select output file and handle revision
-                var path = Paths.get(revisionsPath.toString(), String.format("%s-%s.gxl", projectName, range.getOrdinal()));
+                var path = Paths.get(pathData.toString(), String.format("%s-%s.gxl", projectName, range.getOrdinal()));
                 var saveFile = new File(path.toAbsolutePath().toString());
                 RevisionHandler.writeToFile(saveFile, range, projectName, fileAnalyzer, spoonModel);
 
-                if (++revisionCounter > maxRevisions) {
+                revisionCounter++;
+                if (revisionCounter >= maxRevisions) {
                     break;
                 }
             }
+            logger.info("Finished exporting data in (seconds): " + ((System.currentTimeMillis() - startMillis) / 1000));
         } catch (IOException e) {
             logger.error("Error when iterating revisions:", e);
         }
-        logger.info("Finished exporting data.");
     }
 }

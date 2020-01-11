@@ -45,13 +45,19 @@ public class DesktopApp {
         var panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        panel.setPreferredSize(new Dimension(600, 180));
+        panel.setPreferredSize(new Dimension(600, 200));
 
         var labelRepo = new JLabel("Repository adresse (https clone adresse):");
         labelRepo.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         var textFieldRepo = new JTextField();
         textFieldRepo.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        var labelBranch = new JLabel("Repository branch (default: master):");
+        labelBranch.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        var textFieldBranch = new JTextField("master");
+        textFieldBranch.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         var labelMaxRevision = new JLabel("Number of revisions to load (0 for all):", SwingConstants.LEFT);
         labelMaxRevision.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -66,7 +72,7 @@ public class DesktopApp {
         panelButton.setAlignmentX(Component.LEFT_ALIGNMENT);
 
 
-        button.addActionListener(event -> onButtonClick(textFieldRepo.getText(), textFieldMaxRevision.getText()));
+        button.addActionListener(event -> onButtonClick(textFieldRepo.getText(), textFieldBranch.getText(), textFieldMaxRevision.getText()));
 
         Arrays.asList(
                 progressBar,
@@ -77,6 +83,10 @@ public class DesktopApp {
                 labelRepo,
                 spacingH(2),
                 textFieldRepo,
+                spacingH(2),
+                labelBranch,
+                spacingH(2),
+                textFieldBranch,
                 spacingH(10),
                 labelMaxRevision,
                 spacingH(2),
@@ -99,11 +109,11 @@ public class DesktopApp {
         labelInfo.setText("Info: " + text);
     }
 
-    private void onButtonClick(String fieldRepo, String fieldMaxRevisions) {
+    private void onButtonClick(String fieldRepo, String fieldBranch, String fieldMaxRevisions) {
         if (!taskRunning) {
             try {
                 var maxRevisions = Integer.parseInt(fieldMaxRevisions);
-                worker = new Worker(fieldRepo, maxRevisions);
+                worker = new Worker(fieldRepo, fieldBranch, maxRevisions);
                 worker.addPropertyChangeListener(event -> {
                     if ("progress".equals(event.getPropertyName()))
                         progressBar.setValue((Integer) event.getNewValue());
@@ -135,16 +145,18 @@ public class DesktopApp {
     private class Worker extends SwingWorker<Integer, Integer> {
 
         private final String repository;
+        private final String branch;
         private final int maxRevisions;
 
-        Worker(String repository, int maxRevisions) {
+        Worker(String repository, String branch, int maxRevisions) {
             this.repository = repository;
+            this.branch = branch;
             this.maxRevisions = maxRevisions;
         }
 
         @Override
         protected Integer doInBackground() {
-                var handler = new RepositoryHandler(repository, maxRevisions);
+                var handler = new RepositoryHandler(repository, branch, maxRevisions);
                 handler.setProgressCallback(this::setProgress);
                 handler.start();
                 handler.setProgressCallback(null);
