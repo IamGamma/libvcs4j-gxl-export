@@ -1,6 +1,6 @@
 package de.gamma.libvcs4j.gxl.export;
 
-import de.gamma.libvcs4j.gxl.export.analysis.FileAnalyzer;
+import de.gamma.libvcs4j.gxl.export.analysis.CombinedFileAnalyzer;
 import de.unibremen.informatik.st.libvcs4j.RevisionRange;
 import de.unibremen.informatik.st.libvcs4j.VCSEngine;
 import de.unibremen.informatik.st.libvcs4j.VCSEngineBuilder;
@@ -35,7 +35,7 @@ public class RepositoryHandler {
     /**
      * A file analyzer that unites different file types.
      */
-    private final FileAnalyzer fileAnalyzer = new FileAnalyzer();
+    private final CombinedFileAnalyzer fileAnalyzer = new CombinedFileAnalyzer();
 
     /**
      * The repository from which data is to be loaded.
@@ -46,7 +46,6 @@ public class RepositoryHandler {
      * The branch from which data is to be loaded.
      */
     private final String branch;
-
 
     /**
      * Specifies how many revisions are to be loaded.
@@ -89,7 +88,7 @@ public class RepositoryHandler {
         projectName = StringUtils.substringBefore(projectName, ".");
 
         logger.info("Delete old generated data");
-        var pathData = Paths.get(GRAPH_DATA_PATH, projectName);
+        var pathData = Paths.get(GRAPH_DATA_PATH, projectName, branch);
         // delete old data from the reposioty, if exists
         if (Files.exists(pathData)) {
             try (var walk = Files.walk(pathData))
@@ -143,7 +142,9 @@ public class RepositoryHandler {
                 try {
                     spoonModel = spoonModelBuilder.update(range);
                 } catch (BuildException e) {
+                    revisionCounter++;
                     logger.error("Error while tring to update SpoonModel for revision " + range.getOrdinal(), e);
+                    continue;
                 }
                 // select output file and handle revision
                 var path = Paths.get(pathData.toString(), String.format("%s-%s.gxl", projectName, range.getOrdinal()));

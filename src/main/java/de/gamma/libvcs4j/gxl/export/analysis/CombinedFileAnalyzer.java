@@ -11,17 +11,17 @@ import java.util.stream.Stream;
 /**
  * Combines IFileAnalyzer for different filytypes in one single point.
  */
-public class FileAnalyzer implements IFileAnalyzer {
+public class CombinedFileAnalyzer implements IFileAnalyzer {
 
-    private final Logger logger = LoggerFactory.getLogger(FileAnalyzer.class);
+    private final Logger logger = LoggerFactory.getLogger(CombinedFileAnalyzer.class);
     private final HashMap<String, IFileAnalyzer> analyzerMap = new HashMap<>();
     private final List<String> analyzableFileTypes = new ArrayList<>();
 
     /**
-     * Creates a new FileAnalyzer that combines multiple classes
+     * Creates a new CombinedFileAnalyzer that combines multiple classes
      * extending IFileAnalyzer like JavaFileAnalyzer.
      */
-    public FileAnalyzer() {
+    public CombinedFileAnalyzer() {
         Stream
                 .of(new JavaFileAnalyzer())
                 .forEach(analyzer -> {

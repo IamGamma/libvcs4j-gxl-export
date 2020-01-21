@@ -191,13 +191,13 @@ public class RevisionHandler {
 
     private RevisionHandler(RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
         this.range = range;
-        this.gxlRoot.graph.id = projectName;
+        this.gxlRoot.graph.id = projectName + "-root";
         this.fileAnalyzer = fileAnalyzer;
         this.spoonModel = spoonModel;
         this.gxlDirRoot = new GxlDir(
                 nodeCounter.getAndIncrement(),
                 projectName,
-                projectName
+                projectName + "-root"
         );
     }
 
