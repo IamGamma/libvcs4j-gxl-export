@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 import static javax.swing.SwingUtilities.*;
@@ -156,10 +158,22 @@ public class DesktopApp {
 
         @Override
         protected Integer doInBackground() {
-                var handler = new RepositoryHandler(repository, branch, maxRevisions);
-                handler.setProgressCallback(this::setProgress);
-                handler.start();
-                handler.setProgressCallback(null);
+            try {
+                var projectsPath = Paths.get("C:/Users/flori/Downloads/projekte");
+                String[] directories = new File(projectsPath.toAbsolutePath().toString()).list();
+                assert directories != null;
+                for (String directory : directories) {
+                    var projectPath = Paths.get(projectsPath.toAbsolutePath().toString(), directory).toAbsolutePath().toString();
+                    var projectPathString = "file://" + projectPath.replace("\\", "/");
+                    logger.info(projectPathString);
+                    var handler = new RepositoryHandler(projectPathString, branch, 1000);
+                    handler.setProgressCallback(this::setProgress);
+                    handler.start();
+                    handler.setProgressCallback(null);
+                }
+            } catch (Exception e) {
+                logger.error("Error on loading VCS", e);
+            }
             return 1;
         }
 

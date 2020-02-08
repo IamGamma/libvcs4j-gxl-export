@@ -34,10 +34,6 @@ class JavaFileAnalyzer implements IFileAnalyzer {
                 gxlFile.numberOfTokens.data = size.getNOT();
             });
 
-            metrics.computeComplexity(vcsFile).ifPresent(complexity -> {
-                // TODO Put analyzed Data in CSV File
-            });
-
             // find all referenced files and create edges representing the reference
             revisionHandler.getSpoonModel().findReferencedFiles(vcsFile).stream()
                     .map(referencedVcsFile -> fileMap.get(referencedVcsFile.getRelativePath()))

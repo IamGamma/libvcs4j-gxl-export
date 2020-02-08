@@ -17,6 +17,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileAttribute;
 import java.util.Comparator;
 import java.util.function.Consumer;
 
@@ -84,47 +86,59 @@ public class RepositoryHandler {
      */
     public void start() {
         // gets the project name of a git repository
-        var projectName = StringUtils.substringAfterLast(repository, "/");
-        projectName = StringUtils.substringBefore(projectName, ".");
-
-        logger.info("Delete old generated data");
-        var pathData = Paths.get(GRAPH_DATA_PATH, projectName, branch);
-        // delete old data from the reposioty, if exists
-        if (Files.exists(pathData)) {
-            try (var walk = Files.walk(pathData))
-            {
-                walk.sorted(Comparator.reverseOrder())
-                        .map(Path::toFile)
-                        .forEach(file -> {
-                            var result = file.delete();
-                            if (!result) {
-                                logger.warn("Could not delete found file " + file.getPath());
-                            }
-                        });
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
         try {
+            var projectName = StringUtils.substringAfterLast(repository, "/");
+            projectName = StringUtils.substringBefore(projectName, ".");
+
+            logger.info("Delete old generated data");
+            var pathData = Paths.get(GRAPH_DATA_PATH, projectName);
+            // delete old data from the reposioty, if exists
+            if (Files.exists(pathData)) {
+                try (var walk = Files.walk(pathData))
+                {
+                    walk.sorted(Comparator.reverseOrder())
+                            .map(Path::toFile)
+                            .forEach(file -> {
+                                var result = file.delete();
+                                if (!result) {
+                                    logger.warn("Could not delete found file " + file.getPath());
+                                }
+                            });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+
+
+
+
             logger.info("Loading Vcs: " + repository);
             VCSEngine vcs = VCSEngineBuilder
                     .ofGit(repository)
                     .withBranch(branch)
                     .build();
 
-            logger.info(repository + ": check maxRevisions");
+            logger.info(projectName + ": check maxRevisions");
             if (maxRevisions == 0) {
                 // load all existing revisions
                 maxRevisions = ((AbstractVSCEngine) vcs).listRevisions().size();
             }
 
-            logger.info(repository + ": create spoon model.");
+            logger.info(projectName + ": create spoon model.");
             // prepare directory for the generated files and SpoonModel
             var spoonModelBuilder = new SpoonModelBuilder();
             Files.createDirectories(pathData);
 
-            logger.info(repository + ": start parsing " + maxRevisions + " revisions.");
+            var csvPath = Paths.get(pathData.toString(), String.format("%s.csv", projectName));
+            Files.createDirectories(csvPath);
+            var csvHeader = "rev;nodes;dirs;combinednodes;locs" + System.lineSeparator();
+            logger.info("Creating file: " + csvPath.toAbsolutePath().toString());
+            Files.deleteIfExists(csvPath);
+            Files.createFile(csvPath);
+            Files.write(csvPath, csvHeader.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+            logger.info(projectName + ": start parsing " + maxRevisions + " revisions.");
             var revisionCounter = 0;
             var startMillis = System.currentTimeMillis();
             logger.info("Start loading repodata at (system millis): " + startMillis);
@@ -149,7 +163,7 @@ public class RepositoryHandler {
                 // select output file and handle revision
                 var path = Paths.get(pathData.toString(), String.format("%s-%s.gxl", projectName, range.getOrdinal()));
                 var saveFile = new File(path.toAbsolutePath().toString());
-                RevisionHandler.writeToFile(saveFile, range, projectName, fileAnalyzer, spoonModel);
+                RevisionHandler.writeToFile(saveFile, csvPath, range, projectName, fileAnalyzer, spoonModel);
 
                 revisionCounter++;
                 if (revisionCounter >= maxRevisions) {
@@ -157,8 +171,8 @@ public class RepositoryHandler {
                 }
             }
             logger.info("Finished exporting data in (seconds): " + ((System.currentTimeMillis() - startMillis) / 1000));
-        } catch (IOException e) {
-            logger.error("Error when iterating revisions:", e);
+        } catch (Exception e) {
+            logger.error("Error while deleting old files", e);
         }
     }
 }

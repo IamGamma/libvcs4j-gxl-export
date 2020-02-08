@@ -19,8 +19,11 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -119,16 +122,16 @@ public class RevisionHandler {
      * @param range the RevisionRange to process
      * @param projectName the name of the processed project
      */
-    public static void writeToFile(File file, RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
+    public static void writeToFile(File file, Path csvPath, RevisionRange range, String projectName, IFileAnalyzer fileAnalyzer, SpoonModel spoonModel) {
         Check.notNull(file, "file must not be null.");
         Check.notNull(range, "range must not be null");
         Check.notNullOrEmpty(projectName, "projectName must not be null or empty");
         Check.notNull(fileAnalyzer, "fileAnalyzer must not be null");
-        Check.notNull(spoonModel, "spoonModel must not be null");
+        //Check.notNull(spoonModel, "spoonModel must not be null");
 
         var handler = new RevisionHandler(range, projectName, fileAnalyzer, spoonModel);
         handler.run();
-        handler.saveToFile(file);
+        handler.saveToFile(file, csvPath);
     }
 
     /**
@@ -312,9 +315,14 @@ public class RevisionHandler {
      *
      * @param file where the data is saved
      */
-    private void saveToFile(File file) {
+    private void saveToFile(File file, Path csvPath) {
         logger.debug(toString() + ": save to file.");
         try {
+            var nodeCount = gxlRoot.graph.files.size();
+            var dirCount = gxlRoot.graph.dirs.size();
+            var locCount = gxlRoot.graph.files.stream().mapToInt((GxlFile gxlFile) -> gxlFile.loc.data).sum();
+            var formatString = "%d;%d;%d;%d;%d" + System.lineSeparator();
+            Files.write(csvPath, String.format(formatString, range.getOrdinal(), nodeCount, dirCount, (nodeCount + dirCount), locCount).getBytes(), StandardOpenOption.APPEND);
             JAXBContext jaxbContext = JAXBContext.newInstance(GxlRoot.class);
             Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
@@ -323,6 +331,8 @@ public class RevisionHandler {
             marshaller.marshal(gxlRoot, file);
         } catch (JAXBException e) {
             logger.error("Error while trying to save revision to gxl file:", e);
+        } catch (IOException e) {
+            logger.error("Error while trying to save data to csv file:", e);
         }
     }
 }
